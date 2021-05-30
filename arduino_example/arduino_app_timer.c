@@ -29,22 +29,26 @@ extern "C" {
 #define HW_TIMER_MAX_COUNT      ((app_timer_count_t) 0xffffu)
 
 
+// Convert milliseconds to TIMER1 counts
 static uint32_t _ms_to_timer_counts(uint32_t ms)
 {
     return ((HW_SYS_CLK_FREQ / 256UL / 100UL) * ((uint32_t) ms)) / 10UL;
 }
 
+// Read the TIMER1 counter
 static app_timer_count_t _read_timer_counts(void)
 {
     return TCNT1;
 }
 
+// Configure TIMER1 to overflow after a specific number of counts
 static void _set_timer_period_counts(app_timer_count_t counts)
 {
     uint16_t preload = (HW_TIMER_MAX_COUNT + 1u) - counts;
     TCNT1 = preload;
 }
 
+// Start/stop TIMER1 from counting
 static void _set_timer_running(bool enabled)
 {
     if (enabled)
@@ -57,7 +61,7 @@ static void _set_timer_running(bool enabled)
     }
 }
 
-
+// Enable/disable interrupts
 static void _set_interrupts_enabled(bool enabled)
 {
     if (enabled)

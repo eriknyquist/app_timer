@@ -22,9 +22,9 @@
  *           maps to an unsigned fixed-width integer type that matches the size of your
  *           timer/counter (the default is uint16_t for a 16-bit timer/counter)
  *
- *        2. Call app_timer_init() and pass in a pointer to the HW model you created
+ *        4. Call app_timer_init() and pass in a pointer to the HW model you created
  *
- *        3. Now, app_timer_create and app_timer_start can be used to create as
+ *        5. Now, app_timer_create and app_timer_start can be used to create as
  *           many timers as needed (see app_timer_api.h)
  */
 
