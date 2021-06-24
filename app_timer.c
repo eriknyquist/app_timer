@@ -220,20 +220,22 @@ void app_timer_on_interrupt(void)
         return;
     }
 
-    // Stop the timer counter
-    _hw_model->set_timer_running(false);
 
     // Set flag indicating the ISR is running
     _isr_running = true;
 
     _running_timer_count += (uint32_t) _last_timer_period;
     uint32_t now = _running_timer_count;
-    _counts_after_last_start = 0u;
 
-    app_timer_t *head = _active_timers_head;
+    // Stop the timer counter, re-start it to time how long ISR takes
+    _hw_model->set_timer_running(false);
+    _configure_timer(_hw_model->max_count);
+    _hw_model->set_timer_running(true);
+    _counts_after_last_start = _hw_model->read_timer_counts();
 
     /* Run handlers for all expired timers; keep removing the timer at the head of the list,
      * and running its handler, until the head of list is an unexpired timer */
+    app_timer_t *head = _active_timers_head;
     while ((NULL != head) && ((head->start_counts + head->total_counts) <= now))
     {
         // Unlink timer from list
@@ -242,17 +244,24 @@ void app_timer_on_interrupt(void)
         if (NULL != head->handler)
         {
             head->handler(head->context);
+        }
 
-            if (APP_TIMER_TYPE_REPEATING == head->type)
-            {
-                // Timer is repeating, must be re-inserted with a new start time
-                head->start_counts = now;
-                _insert_timer(head);
-            }
+        // Update our notion of "now", handler may have taken significant time
+        now = _total_timer_counts();
+
+        if (APP_TIMER_TYPE_REPEATING == head->type)
+        {
+            // Timer is repeating, must be re-inserted with a new start time
+            head->start_counts = now;
+            _insert_timer(head);
         }
 
         head = _active_timers_head;
     }
+
+    // Update running timer count with time taken to run expired handlers
+    _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
+    _hw_model->set_timer_running(false);
 
     if (NULL == _active_timers_head)
     {
@@ -353,11 +362,6 @@ app_timer_error_e app_timer_start(app_timer_t *timer, uint32_t ms_from_now, void
     /* If this is the new head of the list, we need to re-configure the HW timer/counter */
     if ((timer == _active_timers_head) && !_isr_running)
     {
-        _hw_model->set_timer_running(false);
-        _configure_timer(timer->total_counts);
-        _hw_model->set_timer_running(true);
-        _counts_after_last_start = _hw_model->read_timer_counts();
-
         if (!only_timer)
         {
             /* If we've replaced another timer as the head timer, then we need to
@@ -365,6 +369,11 @@ app_timer_error_e app_timer_start(app_timer_t *timer, uint32_t ms_from_now, void
              * for the previous head timer. */
             _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
         }
+
+        _hw_model->set_timer_running(false);
+        _configure_timer(timer->total_counts);
+        _hw_model->set_timer_running(true);
+        _counts_after_last_start = _hw_model->read_timer_counts();
     }
 
     _hw_model->set_interrupts_enabled(true);

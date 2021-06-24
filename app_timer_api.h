@@ -157,7 +157,10 @@ void app_timer_on_interrupt(void);
  * started with #app_timer_start.
  *
  * @param timer    Pointer to timer instance to initialize
- * @param handler  Handler to run on timer expiry
+ * @param handler  Handler to run on timer expiry. The handler should return as quickly as possible. If
+ *                 the handler takes longer than hw_model.max_count to return, then the app_timer module may
+ *                 fail to maintain an accurate notion of time, which may cause future timer instances to
+ *                 expire at an unexpected times.
  * @param type     Type of timer to create
  *
  * @return #APP_TIMER_OK if successful
