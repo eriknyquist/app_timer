@@ -5,13 +5,24 @@
 
 #include "arduino_app_timer.h"
 
-static app_timer_t timer;
+static app_timer_t blink_timer;
+static app_timer_t print_timer;
+
+// tracks when the print timer has fired, so we can do the printing in the main loop and
+// not in timer interrupt context
+static volatile bool print_timer_fired = false;
+
 
 // Called when "timer" expires
-void timer_callback(void *context)
+void blink_timer_callback(void *context)
 {
     // Toggle the LED
     digitalWrite(13, digitalRead(13) ^ 1);
+}
+
+void print_timer_callback(void *context)
+{
+    print_timer_fired = true;
 }
 
 void setup()
@@ -19,17 +30,31 @@ void setup()
     // Initialize the pin to control the LED
     pinMode(13, OUTPUT);
 
-    // Initialize the app_timer library
+    // Initialize Serial so we can print
+    Serial.begin(115200);
+
+    // Initialize the app_timer library (calls app_timer_init with the hardware model for arduino uno)
     arduino_app_timer_init();
 
-    // Create a new timer that will repeat until we stop it
-    app_timer_create(&timer, &timer_callback, APP_TIMER_TYPE_REPEATING);
+    // Create a new timer that will repeat until we stop it, for blinking
+    app_timer_create(&blink_timer, &blink_timer_callback, APP_TIMER_TYPE_REPEATING);
 
-    // Start the timer to expire every 1000 milliseconds
-    app_timer_start(&timer, 1000u, NULL);
+    // Create a new timer that will repeat until we stop it, for blinking
+    app_timer_create(&print_timer, &print_timer_callback, APP_TIMER_TYPE_REPEATING);
+
+    // Start the blink timer to expire every 1000 milliseconds
+    app_timer_start(&blink_timer, 1000u, NULL);
+
+    // Start the print timer to expire every 1250 milliseconds
+    app_timer_start(&print_timer, 1250u, NULL);
 }
 
 void loop()
 {
-    // Don't need anything here, timer_callback will be called automatically when time is up
+    // Check and see if print timer expired
+    if (print_timer_fired)
+    {
+        print_timer_fired = false;
+        Serial.println("print");
+    }
 }
