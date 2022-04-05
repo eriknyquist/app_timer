@@ -28,6 +28,11 @@ See API documentation in `app_timer_api.h` for more details.
   be traversed each time `app_timer_on_interrupt` is invoked, so in the case where there are a very large number of
   simultaneous active application timers, `app_timer_on_interrupt` may take noticeably more time to execute.
 
+- `app_timer_start` accepts only milliseconds for the timer period, and converts it to native timer counts, using
+  the `ms_to_timer_counts` function in your provided hardware model. The converted ticks value is stored as a
+  `uint32_t`, so the maximum timer period you can provide to `app_timer_start` without risking an overflow
+  is whatever corresponds to a native tick/count value of 2^32.
+
 ## Included hardware model and example sketch for Arduino UNO
 
 The `arduino_example/` directory contains an implementation of a hardware model for
