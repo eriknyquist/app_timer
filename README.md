@@ -33,6 +33,12 @@ See API documentation in `app_timer_api.h` for more details.
   `uint32_t`, so the maximum timer period you can provide to `app_timer_start` without risking an overflow
   is whatever corresponds to a native tick/count value of 2^32.
 
+- Automatic handling of timer/counter overflow; if you are using a timer/counter, for example, which overflows after
+  12 hours with your specific configuration, and you call `app_timer_start` with an expiry time of 14 hours,
+  then the overflow will be handled behind the scenes by the `app_timer` module and your callback will still be
+  invoked after 14 hours (as long as your have correctly set the `max_count` value in your hardware model, and the timer
+  expiry time does not overflow a uint32 when coverted to timer ticks, see previous item...)
+
 ## Included hardware model and example sketch for Arduino UNO
 
 The `arduino_example/` directory contains an implementation of a hardware model for
