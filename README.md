@@ -24,9 +24,10 @@ See API documentation in `app_timer_api.h` for more details.
   can be statically allocated if you want them to be, and there is no limit to how many app_timer_t instances can be running
   simulatenously (depending, that is, on your performance requirements; see next item...)
 
-- Can handle any number of application timers running simultaneously, BUT the entire linked list of active timers must
-  be traversed each time `app_timer_on_interrupt` is invoked, so in the case where there are a very large number of
-  simultaneous active application timers, `app_timer_on_interrupt` may take noticeably more time to execute.
+- Can handle any number of application timers running simultaneously, BUT the entire linked list of active timers may
+  need to be traversed each time `app_timer_on_interrupt` is invoked (specifically, it will traverse the list until it
+  finds a timer that has not expired yet), so in the case where there are a very large number of simultaneous active application
+  timers, `app_timer_on_interrupt` may take noticeably more time to execute.
 
 - `app_timer_start` accepts only milliseconds for the timer period, and converts it to native timer counts, using
   the `ms_to_timer_counts` function in your provided hardware model. The converted ticks value is stored as a
