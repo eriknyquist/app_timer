@@ -29,11 +29,6 @@ See API documentation in `app_timer_api.h` for more details.
   finds a timer that has not expired yet), so in the case where there are a very large number of simultaneous active application
   timers, `app_timer_on_interrupt` may take noticeably more time to execute.
 
-- `app_timer_start` accepts only milliseconds for the timer period, and converts it to native timer counts, using
-  the `ms_to_timer_counts` function in your provided hardware model. The converted ticks value is stored as a
-  `uint32_t`, so the maximum timer period you can provide to `app_timer_start` without risking an overflow
-  is whatever corresponds to a native tick/count value of 2^32.
-
 - Automatic handling of timer/counter overflow; if you are using a timer/counter, for example, which overflows after
   12 hours with your specific configuration, and you call `app_timer_start` with an expiry time of 14 hours,
   then the overflow will be handled behind the scenes by the `app_timer` module and your callback will still be
@@ -63,15 +58,18 @@ static app_timer_t print_timer;
 static volatile bool print_timer_fired = false;
 
 
-// Called when "timer" expires
+// Called whenever "blink_timer" expires
 void blink_timer_callback(void *context)
 {
     // Toggle the LED
     digitalWrite(13, digitalRead(13) ^ 1);
 }
 
+// Called whenever "print_timer" expires
 void print_timer_callback(void *context)
 {
+    // Printing takes a long time, so just a set a flag here and do the
+    // actual printing in the main loop
     print_timer_fired = true;
 }
 
