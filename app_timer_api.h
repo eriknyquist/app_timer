@@ -18,10 +18,10 @@
  *        2. Ensure "app_timer_on_interrupt" is called in the interrupt handler for the
  *           timer/counter hardware being used
  *
- *        3. Ensure that either APP_TIMER_COUNT_UINT8, APP_TIMER_COUNT_UINT16, or
- *           APP_TIMER_COUNT_UINT32 is set -- pick one that is large enough to hold
- *           all the bits of your hardware counter. For example, if you had a 12-bit
- *           counter, you could use either APP_TIMER_COUNT_UINT16 or APP_TIMER_COUNT_UINT32.
+ *        3. Ensure that either APP_TIMER_COUNT_UINT16, APP_TIMER_COUNT_UINT32, or
+ *           APP_TIMER_COUNT_UINT64 is set -- pick one that is large enough to hold
+ *           all the bits of your hardware counter. For example, if you had a 24-bit
+ *           counter, you should use either APP_TIMER_COUNT_UINT32 or APP_TIMER_COUNT_UINT64.
  *           If you don't define one of these options, the default is APP_TIMER_COUNT_UINT32.
  *
  *        4. Call app_timer_init() and pass in a pointer to the HW model you created
@@ -70,8 +70,8 @@ extern "C" {
  * Datatype used to represent a count value for the underlying hardware counter.
 
  * This should be set to an unsigned fixed-width integer type that is large enough
- * to hold the number of bits the counter has. For example, if using a 12-bit counter,
- * either uint16_t or uint32_t would be sufficient.
+ * to hold the number of bits the counter has. For example, if using a 24-bit counter,
+ * either uint32_t or uint64_t would be sufficient, but not uint16_t.
  */
 #if defined(APP_TIMER_COUNT_UINT16)
 typedef uint16_t app_timer_count_t;
