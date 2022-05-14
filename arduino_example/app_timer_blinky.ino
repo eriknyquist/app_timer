@@ -13,15 +13,18 @@ static app_timer_t print_timer;
 static volatile bool print_timer_fired = false;
 
 
-// Called when "timer" expires
+// Called every time "blink_timer" expires
 void blink_timer_callback(void *context)
 {
     // Toggle the LED
     digitalWrite(13, digitalRead(13) ^ 1);
 }
 
+// Called every time "print_timer" expires
 void print_timer_callback(void *context)
 {
+	// Since the printing takes a long time, we'll just set a flag here and do the
+	// actual printing in the main loop
     print_timer_fired = true;
 }
 

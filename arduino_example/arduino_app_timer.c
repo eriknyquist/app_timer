@@ -13,9 +13,11 @@
 #include <stdint.h>
 #include "arduino_app_timer.h"
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 /**
  * The Arduino UNO's clock frequency; the speed at which the timer will count if
@@ -30,10 +32,11 @@ extern "C" {
 
 
 // Convert milliseconds to TIMER1 counts
-static uint32_t _ms_to_timer_counts(uint32_t ms)
+static app_timer_running_count_t _ms_to_timer_counts(uint32_t ms)
 {
-    return ((HW_SYS_CLK_FREQ / 256UL / 100UL) * ((uint32_t) ms)) / 10UL;
+    return ((HW_SYS_CLK_FREQ / 256UL / 100UL) * ms) / 10UL;
 }
+
 
 // Read the TIMER1 counter
 static app_timer_count_t _read_timer_counts(void)
@@ -41,12 +44,14 @@ static app_timer_count_t _read_timer_counts(void)
     return TCNT1;
 }
 
+
 // Configure TIMER1 to overflow after a specific number of counts
 static void _set_timer_period_counts(app_timer_count_t counts)
 {
     uint16_t preload = (HW_TIMER_MAX_COUNT + 1u) - counts;
     TCNT1 = preload;
 }
+
 
 // Start/stop TIMER1 from counting
 static void _set_timer_running(bool enabled)
@@ -61,9 +66,12 @@ static void _set_timer_running(bool enabled)
     }
 }
 
+
 // Enable/disable interrupts
-static void _set_interrupts_enabled(bool enabled)
+static void _set_interrupts_enabled(bool enabled, app_timer_int_status_t *int_status)
 {
+	(void) int_status; // Unused for this hardware model
+
     if (enabled)
     {
         interrupts();
@@ -74,21 +82,29 @@ static void _set_interrupts_enabled(bool enabled)
     }
 }
 
+
+// Initialize hardware model
 static bool _init(void)
 {
-    _set_interrupts_enabled(false);
+	app_timer_int_status_t int_status = 0u;
+
+    _set_interrupts_enabled(false, &int_status);
     TCCR1A = 0;
     TCCR1B = 0;
     TCCR1B |= (1 << CS12);    // 256 prescaler
-    _set_interrupts_enabled(true);
+    _set_interrupts_enabled(true, &int_status);
     return true;
 }
 
+
+// ISR for timer interrupt
 ISR(TIMER1_OVF_vect)
 {
     app_timer_on_interrupt();
 }
 
+
+// Hardware model definition
 static app_timer_hw_model_t _arduino_hw_model = {
     .init = _init,
     .ms_to_timer_counts = _ms_to_timer_counts,
@@ -98,6 +114,7 @@ static app_timer_hw_model_t _arduino_hw_model = {
     .set_interrupts_enabled = _set_interrupts_enabled,
     .max_count = HW_TIMER_MAX_COUNT
 };
+
 
 /**
  * @see arduino_app_timer.h

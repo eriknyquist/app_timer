@@ -18,9 +18,11 @@
  *        2. Ensure "app_timer_on_interrupt" is called in the interrupt handler for the
  *           timer/counter hardware being used
  *
- *        3. Ensure the typedef for app_timer_count_t (at the top of app_timer_api.h)
- *           maps to an unsigned fixed-width integer type that matches the size of your
- *           timer/counter (the default is uint16_t for a 16-bit timer/counter)
+ *        3. Ensure that either APP_TIMER_COUNT_UINT8, APP_TIMER_COUNT_UINT16, or
+ *           APP_TIMER_COUNT_UINT32 is set -- pick one that is large enough to hold
+ *           all the bits of your hardware counter. For example, if you had a 12-bit
+ *           counter, you could use either APP_TIMER_COUNT_UINT16 or APP_TIMER_COUNT_UINT32.
+ *           If you don't define one of these options, the default is APP_TIMER_COUNT_UINT32.
  *
  *        4. Call app_timer_init() and pass in a pointer to the HW model you created
  *
@@ -41,11 +43,67 @@ extern "C" {
 
 
 /**
- * Datatype used to represent a count value for the underlying HW timer.
- * This should be set to an unsigned fixed-width integer type that matches the
- * width of the timer/counter being used.
+ * Defines the datatype used to represent a count value for the underlying hardware counter.
  */
+#if !defined(APP_TIMER_COUNT_UINT8) && !defined(APP_TIMER_COUNT_UINT16) && !defined(APP_TIMER_COUNT_UINT32)
+#define APP_TIMER_COUNT_UINT32  // Store hardware counter value in 32 bits by default
+#endif
+
+
+/**
+ * Defines the datatype used to represent a running counter that spans across multiple hardware counter overflows
+ */
+#if !defined(APP_TIMER_RUNNING_COUNT_UINT16) && !defined(APP_TIMER_RUNNING_COUNT_UINT32)
+#define APP_TIMER_RUNNING_COUNT_UINT32  // Store running counter value in 32 bits by default
+#endif
+
+
+/**
+ * Defines the datatype used to represent the interrupt status passed to 'set_interrupts_enabled'
+ */
+#if !defined(APP_TIMER_INT_UINT32) && !defined(APP_TIMER_INT_UINT64)
+#define APP_TIMER_INT_UINT32  // Store interrupt status value in 32 bits by default
+#endif
+
+
+/**
+ * Datatype used to represent a count value for the underlying hardware counter.
+ * This should be set to an unsigned fixed-width integer type that is large enough
+ * to hold the number of bits the counter has.
+ */
+#if defined(APP_TIMER_COUNT_UINT8)
+typedef uint8_t app_timer_count_t;
+#elif defined(APP_TIMER_COUNT_UINT16)
 typedef uint16_t app_timer_count_t;
+#elif defined(APP_TIMER_COUNT_UINT32)
+typedef uint32_t app_timer_count_t;
+#else
+#error "Hardware counter width is not defined"
+#endif // APP_TIMER_COUNTER_*
+
+
+/**
+ * Datatype used to represent a running counter that spans across multiple hardware counter overflows
+ */
+#if defined(APP_TIMER_RUNNING_COUNT_UINT32)
+typedef uint32_t app_timer_running_count_t;
+#elif defined(APP_TIMER_RUNNING_COUNT_UINT64)
+typedef uint64_t app_timer_running_count_t;
+#else
+#error "Running counter width is not defined"
+#endif // APP_TIMER_RUNNING_COUNTER_*
+
+
+/**
+ * Datatype used to represent the interrupt status passed to 'set_interrupts_enabled'
+ */
+#if defined(APP_TIMER_INT_UINT32)
+typedef uint32_t app_timer_int_status_t;
+#elif defined(APP_TIMER_INT_UINT64)
+typedef uint64_t app_timer_int_status_t;
+#else
+#error "Interrupt status type is not defined"
+#endif // APP_TIMER_INT_*
 
 
 /**
@@ -78,13 +136,13 @@ typedef enum
  */
 typedef struct _app_timer_t
 {
-    struct _app_timer_t *next;       ///< Timer scheduled to expire after this one
-    struct _app_timer_t *previous;   ///< Timer scheduled to expire before this one
-    app_timer_handler_t handler;     ///< Handler to run on expiry
-    void *context;                   ///< Optional pointer to extra data
-    uint32_t start_counts;           ///< Timer counts when timer was started
-    uint32_t total_counts;           ///< Total timer counts until the next expiry
-    app_timer_type_e type;           ///< Type of timer
+    struct _app_timer_t *volatile next;               ///< Timer scheduled to expire after this one
+    struct _app_timer_t *volatile previous;           ///< Timer scheduled to expire before this one
+    volatile app_timer_running_count_t start_counts;  ///< Timer counts when timer was started
+    volatile app_timer_running_count_t total_counts;  ///< Total timer counts until the next expiry
+    app_timer_handler_t handler;                      ///< Handler to run on expiry
+    void *context;                                    ///< Optional pointer to extra data
+    app_timer_type_e type;                            ///< Type of timer
 } app_timer_t;
 
 
@@ -107,7 +165,7 @@ typedef struct
      *
      * @return  Time in HW timer/counter counts
      */
-    uint32_t (*ms_to_timer_counts)(uint32_t ms);
+    app_timer_running_count_t (*ms_to_timer_counts)(uint32_t ms);
 
     /**
      * Read the current HW timer/counter counts
@@ -134,9 +192,14 @@ typedef struct
     /**
      * Enable/disable interrupts for the HW timer/counter
      *
-     * @param enabled  If true, enable interrupts. If false, disable interrupts.
+     * @param enabled     If true, enable interrupts. If false, disable interrupts.
+     * @param int_status  Pointer to interrupt status value. This is guaranteed to point
+     *                    to the same location for both the 'enable' and 'disable' calls
+     *                    for any one instance where interrupts are disabled to protect
+     *                    access to the list of active timer instances. You may want to use
+     *                    this value, for example, to save/restore interrupt status.
      */
-    void (*set_interrupts_enabled)(bool enabled);
+    void (*set_interrupts_enabled)(bool enabled, app_timer_int_status_t *int_status);
 
     /**
      * The maximum value that the HW timer/counter can count up to before overflowing
