@@ -68,8 +68,10 @@ extern "C" {
 
 /**
  * Datatype used to represent a count value for the underlying hardware counter.
+
  * This should be set to an unsigned fixed-width integer type that is large enough
- * to hold the number of bits the counter has.
+ * to hold the number of bits the counter has. For example, if using a 12-bit counter,
+ * either uint16_t or uint32_t would be sufficient.
  */
 #if defined(APP_TIMER_COUNT_UINT8)
 typedef uint8_t app_timer_count_t;
@@ -83,7 +85,20 @@ typedef uint32_t app_timer_count_t;
 
 
 /**
- * Datatype used to represent a running counter that spans across multiple hardware counter overflows
+ * Datatype used to represent a running counter that tracks total elapsed time
+ * since one or more active timers have been running continuously.
+ *
+ * You should pick this according to the expected lifetime of your system. Let's
+ * say, for example, that you are using a counter driven by a 32KHz clock; this
+ * would mean using uint32_t for the running counter allows the app_timer module
+ * to have timers running continuously for up to 2^32(-1) ticks, before the running
+ * counter overflows. 2^32(-1) ticks at 32KHz is about 36 hours. Using
+ * uint64_t for the running counter, so 2^64(-1) ticks before overflow, with the same
+ * setup would get you over a million years before overflow.
+ *
+ * This running counter also gets reset to 0 when there are no active timers, so the overflow
+ * condition will only occur when there have been one or more active timers continuously for
+ * the maximum number of ticks.
  */
 #if defined(APP_TIMER_RUNNING_COUNT_UINT32)
 typedef uint32_t app_timer_running_count_t;
@@ -111,6 +126,7 @@ typedef uint64_t app_timer_int_status_t;
  */
 typedef void (*app_timer_handler_t)(void *);
 
+
 /**
  * Enumerates all error codes returned by timer functions
  */
@@ -122,6 +138,7 @@ typedef enum
     APP_TIMER_ERROR
 } app_timer_error_e;
 
+
 /**
  * Enumerates all possible timer types
  */
@@ -130,6 +147,7 @@ typedef enum
     APP_TIMER_TYPE_SINGLE_SHOT,   ///< Timer expires once, no reloading
     APP_TIMER_TYPE_REPEATING      ///< Continue reloading the timer on expiry, until stopped
 } app_timer_type_e;
+
 
 /**
  * Holds all information required to track a single timer instance
