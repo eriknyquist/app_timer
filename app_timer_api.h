@@ -154,6 +154,7 @@ typedef enum
  */
 typedef struct _app_timer_t
 {
+    volatile bool active;                             ///< True if timer is linked into the list of active timers
     struct _app_timer_t *volatile next;               ///< Timer scheduled to expire after this one
     struct _app_timer_t *volatile previous;           ///< Timer scheduled to expire before this one
     volatile app_timer_running_count_t start_counts;  ///< Timer counts when timer was started

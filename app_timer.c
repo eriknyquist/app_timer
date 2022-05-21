@@ -41,8 +41,14 @@ extern "C" {
  * are active timers */
 static volatile app_timer_running_count_t _running_timer_count = 0u;
 
-// Points to the timer that will expire soonest
+// Head of the list of active timers, points to the timer that will expire soonest
 static app_timer_t *volatile _active_timers_head = NULL;
+
+// Head of the list of expired timers, points to the timer that expired first
+static app_timer_t *volatile _expired_timers_head = NULL;
+
+// Tail of the list of expired timers, points to the timer that expired last
+static app_timer_t *volatile _expired_timers_tail = NULL;
 
 // The last value that was passed to set_timer_period_counts
 static volatile app_timer_count_t _last_timer_period = 0u;
@@ -61,24 +67,6 @@ static app_timer_hw_model_t *_hw_model = NULL;
 
 
 /**
- * Checks if a timer is currently active
- *
- * @return timer  Pointer to timer instance to check
- *
- * @return True if timer is active
- */
-static bool _timer_active(app_timer_t *timer)
-{
-    if (timer == _active_timers_head)
-    {
-        return true;
-    }
-
-    return ((NULL != timer->next) || (NULL != timer->previous));
-}
-
-
-/**
  * Inserts a new timer into the doubly-linked list of active timers, ensuring that the order of the
  * list is maintained (the next timer to expire must always be the head of the list).
  *
@@ -87,7 +75,7 @@ static bool _timer_active(app_timer_t *timer)
  *
  * @param timer Pointer to timer instance to insert
  */
-static void _insert_timer(app_timer_t *timer)
+static void _insert_active_timer(app_timer_t *timer)
 {
     if (NULL == _active_timers_head)
     {
@@ -104,8 +92,8 @@ static void _insert_timer(app_timer_t *timer)
 
     /* Pending timers are maintained as a doubly-linked list, in ascending order
      * of expiry time, such that the timer set to expire next is always the head of
-     * the list. In order to maintain this, we just need to look for the first timer
-     * (starting from the head) with an expiry time *later* than that of the new timer,
+     * the list. In order to maintain this, we just need to walk the list and look
+     * for the first timer with an expiry time *later* than that of the new timer,
      * and insert the new timer before that one. */
     while (NULL != curr)
     {
@@ -121,7 +109,7 @@ static void _insert_timer(app_timer_t *timer)
             break;
         }
 
-		prev = curr;
+        prev = curr;
         curr = curr->next;
     }
 
@@ -150,6 +138,8 @@ static void _insert_timer(app_timer_t *timer)
             _active_timers_head = timer;
         }
     }
+
+    timer->active = true;
 }
 
 
@@ -158,7 +148,7 @@ static void _insert_timer(app_timer_t *timer)
  *
  * @param timer  Pointer to timer instance to unlink
  */
-static void _remove_timer(app_timer_t *timer)
+static void _remove_active_timer(app_timer_t *timer)
 {
     if (_active_timers_head == timer)
     {
@@ -178,6 +168,7 @@ static void _remove_timer(app_timer_t *timer)
 
     timer->next = NULL;
     timer->previous = NULL;
+    timer->active = false;
 }
 
 
@@ -210,18 +201,80 @@ static app_timer_running_count_t _total_timer_counts(void)
 
 
 /**
+ * Walks the list of active timers, and and moves each expired timer to the
+ * 'expired timers' list, until the head of the list of active timers is a timer that has
+ * yet to expire.
+ *
+ * @param now  Current running time in ticks
+ */
+static bool _remove_expired_timers(app_timer_running_count_t now)
+{
+    app_timer_t *head = _active_timers_head;
+    while ((NULL != head) && ((head->start_counts + head->total_counts) <= now))
+    {
+        // Unlink timer from active list
+        _remove_active_timer(head);
+
+        // Add timer to the expired list
+        if (NULL == _expired_timers_head)
+        {
+            _expired_timers_head = head;
+            _expired_timers_tail = head;
+        }
+        else
+        {
+            _expired_timers_tail->next = head;
+        }
+    }
+}
+
+
+/**
+ * Traverse the expired timers list, run the handler for each timer, and remove
+ * the timer from the list
+ */
+static void _handle_expired_timers(app_timer_running_ticks_t now)
+{
+    while (NULL != _expired_timers_head)
+    {
+        // Remove handler from the list, update head
+        app_timer_t *curr = _expired_timers_head;
+        _expired_timers_head = _expired_timers_head->next;
+        curr->next = NULL;
+
+        // Run the handler
+        if (NULL != curr->handler)
+        {
+            curr->handler(curr->context);
+        }
+
+        // Update our notion of "now", handler may have taken significant time
+        now = _total_timer_counts();
+
+        if ((APP_TIMER_TYPE_REPEATING == curr->type) && !curr->active)
+        {
+            /* Timer is repeating, and was not-restarted by the handler,
+             * so must be re-inserted with a new start time */
+            curr->start_counts = now;
+            _insert_active_timer(curr);
+        }
+    }
+}
+
+
+/**
  * @see app_timer_api.h
  */
 void app_timer_on_interrupt(void)
 {
-    // Sanity check, this should never be NULL
-    if (NULL == _active_timers_head)
-    {
-        return;
-    }
-
-    // Set flag indicating the ISR is running
+    /* Set flag indicating the ISR is running, so that any calls to app_timer_start
+     * inside handlers will know not to configure the timer. This does not need
+     * to be protected from interrupts. */
     _isr_running = true;
+
+    // Disable interrupts to update _running_timer_count and pop expired timers off the list
+    app_timer_int_status_t int_status = 0u;
+    _hw_model->set_interrupts_enabled(false, &int_status);
 
     _running_timer_count += (app_timer_running_count_t) _last_timer_period;
     app_timer_running_count_t now = _running_timer_count;
@@ -232,31 +285,15 @@ void app_timer_on_interrupt(void)
     _hw_model->set_timer_running(true);
     _counts_after_last_start = _hw_model->read_timer_counts();
 
-    /* Run handlers for all expired timers; keep removing the timer at the head of the list,
-     * and running its handler, until the head of list is an unexpired timer */
-    app_timer_t *head = _active_timers_head;
-    while ((NULL != head) && ((head->start_counts + head->total_counts) <= now))
-    {
-        // Unlink timer from list
-        _remove_timer(head);
+    _remove_expired_timers(now);
 
-        if (NULL != head->handler)
-        {
-            head->handler(head->context);
-        }
+    // Re-enable interrupts to run handlers for expired timers
+    _hw_model->set_interrupts_enabled(true, &int_status);
 
-        // Update our notion of "now", handler may have taken significant time
-        now = _total_timer_counts();
+    _handle_expired_timers();
 
-        if (APP_TIMER_TYPE_REPEATING == head->type)
-        {
-            // Timer is repeating, must be re-inserted with a new start time
-            head->start_counts = now;
-            _insert_timer(head);
-        }
-
-        head = _active_timers_head;
-    }
+    // Disable interrupts to modify _running_timer_count and inspect active timers list
+    _hw_model->set_interrupts_enabled(false, &int_status);
 
     // Update running timer count with time taken to run expired handlers
     _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
@@ -276,6 +313,8 @@ void app_timer_on_interrupt(void)
         _hw_model->set_timer_running(true);
         _counts_after_last_start = _hw_model->read_timer_counts();
     }
+
+    _hw_model->set_interrupts_enabled(true, &int_status);
 
     _isr_running = false;
 }
@@ -322,7 +361,7 @@ app_timer_error_e app_timer_start(app_timer_t *timer, uint32_t ms_from_now, void
         return APP_TIMER_INVALID_PARAM;
     }
 
-    if (_timer_active(timer))
+    if (timer->active)
     {
         // Timer is already active
         return APP_TIMER_OK;
@@ -341,7 +380,7 @@ app_timer_error_e app_timer_start(app_timer_t *timer, uint32_t ms_from_now, void
     // Were any timers running before this one?
     bool only_timer = (NULL == _active_timers_head);
 
-    /* timer->start_counts must be set before calling _insert_timer; the expiry
+    /* timer->start_counts must be set before calling _insert_active_timer; the expiry
      * time if the timer must be known in order to position the new timer correctly
      * within the list */
     if (only_timer && !_isr_running)
@@ -359,7 +398,7 @@ app_timer_error_e app_timer_start(app_timer_t *timer, uint32_t ms_from_now, void
     }
 
     // Insert timer into list
-    _insert_timer(timer);
+    _insert_active_timer(timer);
 
     /* If this is the new head of the list, we need to re-configure the HW timer/counter */
     if ((timer == _active_timers_head) && !_isr_running)
@@ -404,7 +443,7 @@ app_timer_error_e app_timer_stop(app_timer_t *timer)
     app_timer_int_status_t int_status = 0u;
     _hw_model->set_interrupts_enabled(false, &int_status);
 
-    _remove_timer(timer);
+    _remove_active_timer(timer);
 
     if (NULL == _active_timers_head)
     {
