@@ -44,9 +44,6 @@ static volatile app_timer_running_count_t _running_timer_count = 0u;
 // Points to the timer that will expire soonest
 static app_timer_t *volatile _active_timers_head = NULL;
 
-// Points to the timer that will expire last
-static app_timer_t *volatile _active_timers_tail = NULL;
-
 // The last value that was passed to set_timer_period_counts
 static volatile app_timer_count_t _last_timer_period = 0u;
 
@@ -96,7 +93,6 @@ static void _insert_timer(app_timer_t *timer)
     {
         // No other active timers
         _active_timers_head = timer;
-        _active_timers_tail = timer;
         return;
     }
 
@@ -104,6 +100,7 @@ static void _insert_timer(app_timer_t *timer)
     app_timer_running_count_t now = timer->start_counts;
 
     app_timer_t *curr = _active_timers_head;
+    app_timer_t *prev = NULL;
 
     /* Pending timers are maintained as a doubly-linked list, in ascending order
      * of expiry time, such that the timer set to expire next is always the head of
@@ -124,6 +121,7 @@ static void _insert_timer(app_timer_t *timer)
             break;
         }
 
+		prev = curr;
         curr = curr->next;
     }
 
@@ -131,10 +129,9 @@ static void _insert_timer(app_timer_t *timer)
     {
         /* Traversed the list without finding any timers that expire later than new timer,
          * so the new timer goes at the end and becomes the new tail of the list. */
-        _active_timers_tail->next = timer;
-        timer->previous = _active_timers_tail;
+        prev->next = timer; // 'prev' will not be NULL if we reach here
+        timer->previous = prev;
         timer->next = NULL;
-        _active_timers_tail = timer;
     }
     else
     {
@@ -167,11 +164,6 @@ static void _remove_timer(app_timer_t *timer)
     {
         // Deleting head timer
         _active_timers_head = timer->next;
-    }
-
-    if (_active_timers_tail == timer)
-    {
-        _active_timers_tail = timer->previous;
     }
 
     if (NULL != timer->next)
@@ -227,7 +219,6 @@ void app_timer_on_interrupt(void)
     {
         return;
     }
-
 
     // Set flag indicating the ISR is running
     _isr_running = true;
