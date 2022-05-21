@@ -341,6 +341,7 @@ app_timer_error_e app_timer_create(app_timer_t *timer, app_timer_handler_t handl
     timer->total_counts = 0u;
     timer->next = NULL;
     timer->previous = NULL;
+    timer->active = false;
 
     return APP_TIMER_OK;
 }

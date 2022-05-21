@@ -45,7 +45,7 @@ extern "C" {
 /**
  * Defines the datatype used to represent a count value for the underlying hardware counter.
  */
-#if !defined(APP_TIMER_COUNT_UINT16) && !defined(APP_TIMER_COUNT_UINT32) && !defined(APP_TIMER_COUNT_UINT64)
+#if !defined(APP_TIMER_COUNT_UINT16) && !defined(APP_TIMER_COUNT_UINT32)
 #define APP_TIMER_COUNT_UINT32  // Store hardware counter value in 32 bits by default
 #endif
 
@@ -77,8 +77,6 @@ extern "C" {
 typedef uint16_t app_timer_count_t;
 #elif defined(APP_TIMER_COUNT_UINT32)
 typedef uint32_t app_timer_count_t;
-#elif defined(APP_TIMER_COUNT_UINT64)
-typedef uint64_t app_timer_count_t;
 #else
 #error "Hardware counter width is not defined"
 #endif // APP_TIMER_COUNTER_*
