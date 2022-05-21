@@ -315,7 +315,7 @@ void app_timer_on_interrupt(void)
     {
         // Configure timer for the next expiration and re-start
         app_timer_running_count_t expiry = _active_timers_head->start_counts + _active_timers_head->total_counts;
-        app_timer_running_count_t counts_until_expiry = expiry - now;
+        app_timer_running_count_t counts_until_expiry = (expiry > now) ? expiry - now : 1u;
         _configure_timer(counts_until_expiry);
         _hw_model->set_timer_running(true);
         _counts_after_last_start = _hw_model->read_timer_counts();
