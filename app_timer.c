@@ -208,7 +208,7 @@ static app_timer_running_count_t _total_timer_counts(void)
  * yet to expire.
  *
  * This function does not need to return anything; the caller will know if any timers
-  * have expired by checking whether _expired_timers_head is not NULL.
+ * have expired by checking whether _expired_timers_head is not NULL.
  *
  * @param now  Current running time in ticks
  */
