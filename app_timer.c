@@ -304,6 +304,7 @@ void app_timer_on_interrupt(void)
 
     // Update running timer count with time taken to run expired handlers
     _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
+    now = _running_timer_count;
     _hw_model->set_timer_running(false);
 
     if (NULL == _active_timers_head)
