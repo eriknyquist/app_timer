@@ -145,6 +145,8 @@ static void _insert_active_timer(app_timer_t *timer)
 
 /**
  * Removes a timer from the doubly-linked list of active timers.
+ * The timer being removed may be at any position in the list (which is the
+ * only reason for the list being doubly linked instead of singly linked).
  *
  * @param timer  Pointer to timer instance to unlink
  */
@@ -201,13 +203,16 @@ static app_timer_running_count_t _total_timer_counts(void)
 
 
 /**
- * Walks the list of active timers, and and moves each expired timer to the
+ * Walks the list of active timers, and moves each expired timer to the
  * 'expired timers' list, until the head of the list of active timers is a timer that has
  * yet to expire.
  *
+ * This function does not need to return anything; the caller will know if any timers
+  * have expired by checking whether _expired_timers_head is not NULL.
+ *
  * @param now  Current running time in ticks
  */
-static bool _remove_expired_timers(app_timer_running_count_t now)
+static void _remove_expired_timers(app_timer_running_count_t now)
 {
     app_timer_t *head = _active_timers_head;
     while ((NULL != head) && ((head->start_counts + head->total_counts) <= now))
@@ -232,8 +237,10 @@ static bool _remove_expired_timers(app_timer_running_count_t now)
 /**
  * Traverse the expired timers list, run the handler for each timer, and remove
  * the timer from the list
+ *
+ * @param now  Current running time in ticks
  */
-static void _handle_expired_timers(app_timer_running_ticks_t now)
+static void _handle_expired_timers(app_timer_running_count_t now)
 {
     while (NULL != _expired_timers_head)
     {
@@ -290,7 +297,7 @@ void app_timer_on_interrupt(void)
     // Re-enable interrupts to run handlers for expired timers
     _hw_model->set_interrupts_enabled(true, &int_status);
 
-    _handle_expired_timers();
+    _handle_expired_timers(now);
 
     // Disable interrupts to modify _running_timer_count and inspect active timers list
     _hw_model->set_interrupts_enabled(false, &int_status);
