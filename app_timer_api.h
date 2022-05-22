@@ -153,14 +153,21 @@ typedef enum
  */
 typedef struct _app_timer_t
 {
-    volatile bool active;                             ///< True if timer is linked into the list of active timers
     struct _app_timer_t *volatile next;               ///< Timer scheduled to expire after this one
     struct _app_timer_t *volatile previous;           ///< Timer scheduled to expire before this one
     volatile app_timer_running_count_t start_counts;  ///< Timer counts when timer was started
     volatile app_timer_running_count_t total_counts;  ///< Total timer counts until the next expiry
     app_timer_handler_t handler;                      ///< Handler to run on expiry
     void *context;                                    ///< Optional pointer to extra data
-    app_timer_type_e type;                            ///< Type of timer
+
+    /**
+     * Bit flags for timer
+     *
+     * Bit 0     : timer active. 1 when timer is active, 0 otherwise.
+     * Bits 1-2  : timer type, one of app_timer_type_e
+     * Bits 3-7  : unused
+     */
+    volatile uint8_t flags;
 } app_timer_t;
 
 

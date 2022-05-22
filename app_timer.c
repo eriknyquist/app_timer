@@ -39,6 +39,19 @@ extern "C" {
 
 
 /**
+ * Bit mask and bit position for active flag
+ */
+#define FLAGS_ACTIVE_BIT (0x1u)
+
+
+/**
+ * Bit mask and bit position for timer type
+ */
+#define FLAGS_TYPE_MASK (0x6u)
+#define FLAGS_TYPE_POS  (0x1u)
+
+
+/**
  * Keeps track of total elapsed timer counts, regardless of overflows, while there
  * are active timers
  */
@@ -113,7 +126,8 @@ static app_timer_hw_model_t *_hw_model = NULL;
  */
 static void _insert_active_timer(app_timer_t *timer)
 {
-    timer->active = true;
+    // Set active flag
+    timer->flags |= FLAGS_ACTIVE_BIT;
 
     if (NULL == _active_timers_head)
     {
@@ -206,7 +220,7 @@ static void _remove_active_timer(app_timer_t *timer)
 
     timer->next = NULL;
     timer->previous = NULL;
-    timer->active = false;
+    timer->flags &= ~FLAGS_ACTIVE_BIT;
 }
 
 
@@ -296,7 +310,10 @@ static void _handle_expired_timers(app_timer_running_count_t now)
         // Update our notion of "now", handler may have taken significant time
         now = _total_timer_counts();
 
-        if ((APP_TIMER_TYPE_REPEATING == curr->type) && !curr->active)
+        // Extract timer type from flags var
+        app_timer_type_e type = (app_timer_type_e) ((curr->flags & FLAGS_TYPE_MASK) >> FLAGS_TYPE_POS);
+
+        if ((APP_TIMER_TYPE_REPEATING == type) && !(curr->flags & FLAGS_ACTIVE_BIT))
         {
             /* Timer is repeating, and was not-restarted by the handler,
              * so must be re-inserted with a new start time */
@@ -384,13 +401,12 @@ app_timer_error_e app_timer_create(app_timer_t *timer, app_timer_handler_t handl
         return APP_TIMER_INVALID_PARAM;
     }
 
-    timer->type = type;
     timer->handler = handler;
     timer->start_counts = 0u;
     timer->total_counts = 0u;
     timer->next = NULL;
     timer->previous = NULL;
-    timer->active = false;
+    timer->flags = ((type << FLAGS_TYPE_POS) & FLAGS_TYPE_MASK);
 
     return APP_TIMER_OK;
 }
@@ -411,7 +427,7 @@ app_timer_error_e app_timer_start(app_timer_t *timer, uint32_t ms_from_now, void
         return APP_TIMER_INVALID_PARAM;
     }
 
-    if (timer->active)
+    if (timer->flags & FLAGS_ACTIVE_BIT)
     {
         // Timer is already active
         return APP_TIMER_OK;
