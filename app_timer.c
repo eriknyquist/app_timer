@@ -97,6 +97,8 @@ static app_timer_hw_model_t *_hw_model = NULL;
  */
 static void _insert_active_timer(app_timer_t *timer)
 {
+    timer->active = true;
+
     if (NULL == _active_timers_head)
     {
         // No other active timers
@@ -158,8 +160,6 @@ static void _insert_active_timer(app_timer_t *timer)
             _active_timers_head = timer;
         }
     }
-
-    timer->active = true;
 }
 
 
@@ -244,12 +244,14 @@ static void _remove_expired_timers(app_timer_running_count_t now)
         if (NULL == _expired_timers_head)
         {
             _expired_timers_head = head;
-            _expired_timers_tail = head;
         }
         else
         {
             _expired_timers_tail->next = head;
         }
+
+        _expired_timers_tail = head;
+        head = head->next;
     }
 }
 
