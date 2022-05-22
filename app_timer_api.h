@@ -219,8 +219,8 @@ typedef struct
      *                    always the same priority), then you may not need to disable any interrupts
      *                    here at all. Conversely, if you call 'app_timer_on_interrupt' in the
      *                    lowest-priority interrupt context, and 'app_timer_start'/'app_timer_stop'
-     *                    in higher interrupt context, then you might need to disable all the
-     *                    higher-priority interrupts, or perhaps just all interrupts entirely.
+     *                    in higher-priority interrupt contexts, then you might need to disable all
+     *                    the higher-priority interrupts, or perhaps just all interrupts entirely.
      *
      * @param int_status  Pointer to interrupt status value. This is guaranteed to point
      *                    to the same location for both the 'enable' and 'disable' calls
