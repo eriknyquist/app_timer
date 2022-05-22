@@ -193,9 +193,9 @@ typedef struct
     app_timer_count_t (*read_timer_counts)(void);
 
     /**
-     * Configure the HW timer/counter to expire after a certain number of counts
+     * Configure the HW timer/counter to generate an interrupt after a specific number of counts
      *
-     * @param counts  Number of counts to configure the HW timer/counter for
+     * @param counts  Number of counts after which a timer interrupt should be generated
      *                (this will always be <= #max_count)
      */
     void (*set_timer_period_counts)(app_timer_count_t counts);
