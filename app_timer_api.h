@@ -12,17 +12,18 @@
  *        the HW timer/counter interrupt fires).
  *
  *        How to use this module;
+ *
  *        1. Implement a HW model (app_timer_hw_model_t) for the specific timer/counter
  *           hardware you wish to use for generating interrupts
  *
  *        2. Ensure "app_timer_on_interrupt" is called in the interrupt handler for the
  *           timer/counter hardware being used
  *
- *        3. Ensure that either APP_TIMER_COUNT_UINT8, APP_TIMER_COUNT_UINT16, or
- *           APP_TIMER_COUNT_UINT32 is set -- pick one that is large enough to hold
- *           all the bits of your hardware counter. For example, if you had a 24-bit
- *           counter, you could use APP_TIMER_COUNT_UINT32, but not APP_TIMER_COUNT_UINT16.
- *           If you don't define one of these options, the default is APP_TIMER_COUNT_UINT32.
+ *        3. Ensure that either APP_TIMER_COUNT_UINT16 or APP_TIMER_COUNT_UINT32 is set --
+ *           pick one that is large enough to hold all the bits of your hardware counter.
+ *           For example, if you had a 24-bit counter, you could use APP_TIMER_COUNT_UINT32,
+ *           but not APP_TIMER_COUNT_UINT16. If you don't define one of these options, the
+ *           default is APP_TIMER_COUNT_UINT32.
  *
  *        4. Call app_timer_init() and pass in a pointer to the HW model you created
  *
