@@ -88,7 +88,7 @@ typedef uint32_t app_timer_count_t;
  * since one or more active timers have been running continuously.
  *
  * You should pick this according to the expected lifetime of your system. Let's
- * say, for example, that you are using a counter driven by a 32KHz clock; this
+ *  say, for example, that you are using a counter driven by a 32KHz clock; this
  * would mean using uint32_t for the running counter allows the app_timer module
  * to have timers running continuously for up to 2^32(-1) ticks, before the running
  * counter overflows. 2^32(-1) ticks at 32KHz is about 36 hours. Using
@@ -249,10 +249,11 @@ void app_timer_on_interrupt(void);
  * started with #app_timer_start.
  *
  * @param timer    Pointer to timer instance to initialize
- * @param handler  Handler to run on timer expiry. The handler should return as quickly as possible. If
- *                 the handler takes longer than hw_model.max_count to return, then the app_timer module may
- *                 fail to maintain an accurate notion of time, which may cause future timer instances to
- *                 expire at an unexpected times.
+ * @param handler  Handler to run on timer expiry. The handler will be called by 'app_timer_on_interrupt'.
+ *                 The handler should return as quickly as possible; If the handler takes longer than
+ *                 hw_model.max_count to return, then the app_timer module may fail to maintain an
+ *                 accurate notion of time, which may cause future timer instances to expire at
+ *                 unexpected times.
  * @param type     Type of timer to create
  *
  * @return #APP_TIMER_OK if successful
