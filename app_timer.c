@@ -285,6 +285,9 @@ static void _handle_expired_timers(app_timer_running_count_t now)
             _insert_active_timer(curr);
         }
     }
+
+    // Traversed the entire list of expired timers, NULL-ify the tail item
+    _expired_timers_tail = NULL;
 }
 
 
