@@ -41,14 +41,33 @@ extern "C" {
  * are active timers */
 static volatile app_timer_running_count_t _running_timer_count = 0u;
 
-// Head of the list of active timers, points to the timer that will expire soonest
+
+/* Head of the list of active timers, points to the timer that will expire soonest.
+ * The list of active timers stores all timer instances that have been started with
+ * 'app_timer_start' but not yet expired.
+ *
+ * We never traverse this list in reverse, and whenever we add to it we need to look
+ * at each item starting from the head (to maintain active timers in order of expiry
+ * time), so there is no need to track the tail item of this list. */
 static app_timer_t *volatile _active_timers_head = NULL;
 
-// Head of the list of expired timers, points to the timer that expired first
-static app_timer_t *volatile _expired_timers_head = NULL;
 
-// Tail of the list of expired timers, points to the timer that expired last
+/* Head and tail of the list of expired timers. This list holds all timers that
+ * have expired and not yet had their handlers run. The reason we have a separate list
+ * for expired timers, instead of just running handlers for expired timers right away
+ * as we pull them off the active timers list, is so that we can disable interrupts while
+ * removing expired timers from the active timers list, but re-enable interrupts while running
+ * the handlers for all expired timers.
+ *
+ * In other words, any accesses to the list of active timers need to be protected in a
+ * critical section, but the handlers for all those expired timers should not be executed
+ * until the critical section is exited.
+ *
+ * We only add items to the tail of this list, and we only remove them from the head,
+ * so we need to track *both * the head and tail items of this list. */
+static app_timer_t *volatile _expired_timers_head = NULL;
 static app_timer_t *volatile _expired_timers_tail = NULL;
+
 
 // The last value that was passed to set_timer_period_counts
 static volatile app_timer_count_t _last_timer_period = 0u;
