@@ -71,7 +71,7 @@ extern "C" {
 
  * This should be set to an unsigned fixed-width integer type that is large enough
  * to hold the number of bits the counter has. For example, if using a 24-bit counter,
- * either uint32_t or uint64_t would be sufficient, but not uint16_t.
+ * uint32_t would be sufficient, but not uint16_t.
  */
 #if defined(APP_TIMER_COUNT_UINT16)
 typedef uint16_t app_timer_count_t;
