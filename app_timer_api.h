@@ -201,16 +201,27 @@ typedef struct
     void (*set_timer_period_counts)(app_timer_count_t counts);
 
     /**
-     * Enable/disable the HW timer to start/stop counting
+     * Start/Stop the HW counter running
      *
      * @param enabled  If true, start counting. If false, stop counting.
      */
     void (*set_timer_running)(bool enabled);
 
     /**
-     * Enable/disable interrupts for the HW timer/counter
+     * Enable/disable interrupts to protect access to the list of active timers
      *
      * @param enabled     If true, enable interrupts. If false, disable interrupts.
+     *                    This function should disable/enable whatever interrupts are necessary
+     *                    to protect access to the list of active timers, and that really depends
+     *                    on your specific system setup; 'app_timer_start', 'app_timer_stop' and
+     *                    'app_timer_on_interrupt' all modify the list of active timers, and if you
+     *                    only ever call these functions in the same context (e.g. an ISR which is
+     *                    always the same priority), then you may not need to disable any interrupts
+     *                    here at all. Conversely, if you call 'app_timer_on_interrupt' in the
+     *                    lowest-priority interrupt context, and 'app_timer_start'/'app_timer_stop'
+     *                    in higher interrupt context, then you might need to disable all the
+     *                    higher-priority interrupts, or perhaps just all interrupts entirely.
+     *
      * @param int_status  Pointer to interrupt status value. This is guaranteed to point
      *                    to the same location for both the 'enable' and 'disable' calls
      *                    for any one instance where interrupts are disabled to protect
@@ -234,7 +245,7 @@ void app_timer_on_interrupt(void);
 
 
 /**
- * Initialize a timer instance. Must be called at least once before a timer can be 
+ * Initialize a timer instance. Must be called at least once before a timer can be
  * started with #app_timer_start.
  *
  * @param timer    Pointer to timer instance to initialize
