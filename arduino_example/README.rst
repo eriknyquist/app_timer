@@ -11,7 +11,7 @@ Running the blinky sketch
 
 #. Ensure you have the `Arduino IDE <https://www.arduino.cc/en/software>`_ installed
 
-#. Double-click on the ``app_timer_blink.ino`` file (Click 'Yes' if you get a window asking
+#. Double-click on the ``app_timer_blinky.ino`` file (Click 'Yes' if you get a window asking
    if you want to create a new folder for the sketch).
 
 #. Once the Arduino IDE has opened, ensure you have an Arduino UNO connected,
