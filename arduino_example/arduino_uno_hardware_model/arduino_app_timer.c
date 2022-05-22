@@ -31,10 +31,11 @@ extern "C" {
 #define HW_TIMER_MAX_COUNT      ((app_timer_count_t) 0xffffu)
 
 
-// Convert milliseconds to TIMER1 counts
+// Convert milliseconds to TIMER1 counts. Timer1 uses a 16MHz clock with a
+// prescaler of 1024, resulting in a tick rate of 15,625Hz
 static app_timer_running_count_t _ms_to_timer_counts(uint32_t ms)
 {
-    return ((HW_SYS_CLK_FREQ / 256UL / 100UL) * ms) / 10UL;
+    return ((HW_SYS_CLK_FREQ / 1024UL / 100UL) * ms) / 10UL;
 }
 
 
@@ -86,12 +87,11 @@ static void _set_interrupts_enabled(bool enabled, app_timer_int_status_t *int_st
 // Initialize hardware model
 static bool _init(void)
 {
-	app_timer_int_status_t int_status = 0u;
-
+    app_timer_int_status_t int_status = 0u;
     _set_interrupts_enabled(false, &int_status);
     TCCR1A = 0;
     TCCR1B = 0;
-    TCCR1B |= (1 << CS12);    // 256 prescaler
+    TCCR1B |= (1 << CS12) | (1 << CS10); // 1024 prescaler
     _set_interrupts_enabled(true, &int_status);
     return true;
 }
