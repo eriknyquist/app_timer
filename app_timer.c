@@ -447,7 +447,7 @@ app_timer_error_e app_timer_start(app_timer_t *timer, uint32_t ms_from_now, void
     bool only_timer = (NULL == _active_timers_head);
 
     /* timer->start_counts must be set before calling _insert_active_timer; the expiry
-     * time if the timer must be known in order to position the new timer correctly
+     * time of the timer must be known in order to position the new timer correctly
      * within the list */
     if (only_timer && !_isr_running)
     {

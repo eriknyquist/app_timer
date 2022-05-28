@@ -23,8 +23,8 @@ void blink_timer_callback(void *context)
 // Called every time "print_timer" expires
 void print_timer_callback(void *context)
 {
-	// Since the printing takes a long time, we'll just set a flag here and do the
-	// actual printing in the main loop
+    // Since the printing takes a long time, we'll just set a flag here and do the
+    // actual printing in the main loop
     print_timer_fired = true;
 }
 
