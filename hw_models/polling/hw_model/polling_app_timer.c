@@ -9,17 +9,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "polling_app_timer.h"
-
+#include "timing.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-#ifdef _WIN32
-#include <Windows.h>
-static uint64_t _perf_freq;
-#endif // _WIN32
 
 
 #define MAX_COUNT (0xffffffu)
@@ -27,23 +21,6 @@ static uint64_t _perf_freq;
 static bool _running = false;
 static app_timer_count_t _last_timer_counts = 0u;
 static uint64_t _last_timer_usecs = 0u;
-
-
-static uint64_t _get_usecs_elapsed(void)
-{
-#ifdef _WIN32
-    LARGE_INTEGER tcounter = {0};
-    uint64_t tick_value = 0u;
-    if (QueryPerformanceCounter(&tcounter) != 0)
-    {
-        tick_value = tcounter.QuadPart;
-    }
-
-    return (uint64_t) (tick_value / (_perf_freq / 1000000));
-#else
-#error "Platform not supported"
-#endif
-}
 
 
 static app_timer_running_count_t _ms_to_timer_counts(uint32_t ms)
@@ -59,7 +36,7 @@ static app_timer_count_t _read_timer_counts(void)
         return 0u;
     }
 
-    return _get_usecs_elapsed() - _last_timer_usecs;
+    return timing_usecs_elapsed() - _last_timer_usecs;
 }
 
 
@@ -81,7 +58,7 @@ static void _set_timer_running(bool enabled)
 
     if (enabled)
     {
-        _last_timer_usecs = _get_usecs_elapsed();
+        _last_timer_usecs = timing_usecs_elapsed();
     }
 }
 
@@ -95,13 +72,7 @@ static void _set_interrupts_enabled(bool enabled, app_timer_int_status_t *int_st
 // Initialize hardware model
 static bool _init(void)
 {
-#ifdef _WIN32
-    LARGE_INTEGER tcounter = {0};
-    if (QueryPerformanceFrequency(&tcounter) != 0)
-    {
-        _perf_freq = tcounter.QuadPart;
-    }
-#endif // _WIN32
+    timing_init();
     return true;
 }
 
