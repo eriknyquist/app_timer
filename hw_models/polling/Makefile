@@ -1,11 +1,20 @@
 OUTPUT_DIR := build
 OBJ_DIR := $(OUTPUT_DIR)/obj
 
-BIN_DIR := C:/MinGW/bin
-GCC := $(BIN_DIR)/gcc
-LD := $(BIN_DIR)/ld
-MKDIR := mkdir -p
-RMDIR := rm -rf
+ifeq ($(OS),Windows_NT)
+    BIN_DIR := C:/MinGW/bin
+    GCC := $(BIN_DIR)/gcc
+    LD := $(BIN_DIR)/ld
+    MKDIR := mkdir -p
+    RMDIR := rm -rf
+else
+    ifeq ($(shell uname -s),Linux)
+        GCC := gcc
+        LD := ld
+        MKDIR := mkdir -p
+        RMDIR := rm -rf
+    endif
+endif
 
 SRC_DIRS := ../.. ./hw_model
 VPATH := $(SRC_DIRS) .

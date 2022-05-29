@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
     printf("- created %u timers, with periods ranging from %u-%ums\n",
            NUM_TEST_TIMERS, lowest_period_ms, highest_period_ms);
 
-    printf("- %u bytes of memory used\n", sizeof(_test_timers));
+    printf("- %lu bytes of memory used\n", sizeof(_test_timers));
 
     printf("\n");
     printf("- running %u timers for %u seconds...\n", NUM_TEST_TIMERS, TOTAL_TEST_TIME_SECONDS);
