@@ -7,24 +7,37 @@ LD := $(BIN_DIR)/ld
 MKDIR := mkdir -p
 RMDIR := rm -rf
 
-SRC_DIRS := ../.. ./hw_model .
-VPATH := $(SRC_DIRS)
+SRC_DIRS := ../.. ./hw_model
+VPATH := $(SRC_DIRS) .
 
-SRC_FILES := $(foreach DIR,$(SRC_DIRS),$(wildcard $(DIR)/*.c))
-OBJ_FILES := $(patsubst %.c,%.o,$(addprefix $(OBJ_DIR)/,$(notdir $(SRC_FILES))))
-PROGNAME := polling_app_timer
-BUILD_OUTPUT := $(OUTPUT_DIR)/$(PROGNAME)
+COMMON_SRC_FILES := $(foreach DIR,$(SRC_DIRS),$(wildcard $(DIR)/*.c))
+TEST_SRC_FILES := $(COMMON_SRC_FILES) test_main.c
+EXAMPLE_SRC_FILES := $(COMMON_SRC_FILES) example_main.c
+TEST_OBJ_FILES := $(patsubst %.c,%.o,$(addprefix $(OBJ_DIR)/,$(notdir $(TEST_SRC_FILES))))
+EXAMPLE_OBJ_FILES := $(patsubst %.c,%.o,$(addprefix $(OBJ_DIR)/,$(notdir $(EXAMPLE_SRC_FILES))))
 
 INCLUDES := $(addprefix -I, $(SRC_DIRS))
 FLAGS := -Wall -O3 -DAPP_TIMER_RUNNING_COUNT_UINT64
 CFLAGS := $(FLAGS) $(INCLUDES)
 
+EXAMPLE_PROG := $(OUTPUT_DIR)/example_main
+TEST_PROG := $(OUTPUT_DIR)/test_main
+
 .PHONY: clean output_dir
 
-all: $(BUILD_OUTPUT)
+default: example
 
-$(BUILD_OUTPUT): output_dir $(OBJ_FILES)
-	$(GCC) $(LFLAGS) $(OBJ_FILES) -o $@
+all: example test
+
+example: $(EXAMPLE_PROG)
+
+test: $(TEST_PROG)
+
+$(EXAMPLE_PROG): output_dir $(EXAMPLE_OBJ_FILES)
+	$(GCC) $(LFLAGS) $(EXAMPLE_OBJ_FILES) -o $@
+
+$(TEST_PROG): output_dir $(TEST_OBJ_FILES)
+	$(GCC) $(LFLAGS) $(TEST_OBJ_FILES) -o $@
 
 $(OBJ_DIR)/%.o: %.c
 	$(GCC) $(CFLAGS) -c -o $@ $<
