@@ -5,7 +5,7 @@
 #include "timing.h"
 
 
-#define TOTAL_TEST_TIME_SECONDS (300u)
+#define TOTAL_TEST_TIME_SECONDS (30u)
 
 
 #define NUM_SINGLE_TIMERS (512u)
@@ -24,12 +24,14 @@
  */
 typedef struct
 {
-    app_timer_t timer;    ///< Timer instance
-    uint32_t ms;          ///< Timer period in milliseconds
-    uint64_t last_us;     ///< Last timer expiration timestamp
-    int64_t sum_diff_us;  ///< Sum of all differences between timer period and measured period
-    uint32_t expirations; ///< Total number of times this timer has expired
-    bool expired;         ///< False if never expired
+    app_timer_t timer;       ///< Timer instance
+    uint32_t ms;             ///< Timer period in milliseconds
+    uint64_t last_us;        ///< Last timer expiration timestamp
+    int64_t sum_diff_us;     ///< Sum of all differences between timer period and measured period
+    int64_t lowest_diff_us;  ///< Lowest deviation seen (from timer period)
+    int64_t highest_diff_us; ///< Highest deviation seen (from timer period)
+    uint32_t expirations;    ///< Total number of times this timer has expired
+    bool expired;            ///< False if never expired
 } test_timer_t;
 
 
@@ -38,13 +40,16 @@ typedef struct
  */
 typedef struct
 {
-    float lowest_percent;
-    float highest_percent;
-    float average_percent;
+    float lowest_avg_percent;
+    float highest_avg_percent;
+    float average_avg_percent;
+
+    float lowest_avg_ms;
+    float highest_avg_ms;
+    float average_avg_ms;
 
     float lowest_ms;
     float highest_ms;
-    float average_ms;
 
     uint32_t expirations_not_plus1_count;
     uint32_t expirations_plus1_count;
@@ -66,6 +71,19 @@ static void _process_timer_expiration(test_timer_t *t)
     int64_t diff = ((int64_t) actual_period_us) - (((int64_t) t->ms) * 1000);
     t->sum_diff_us += diff;
     t->last_us = now_us;
+
+    // Get absolute value of difference
+    uint64_t abs_diff = (diff < 0LL) ? ((uint64_t) (diff * -1LL)) : (uint64_t) diff;
+
+    if (abs_diff > t->highest_diff_us)
+    {
+        t->highest_diff_us = abs_diff;
+    }
+
+    if (abs_diff < t->lowest_diff_us)
+    {
+        t->lowest_diff_us = abs_diff;
+    }
 }
 
 // Timer callback for all single-shot timers
@@ -97,13 +115,16 @@ static void _dump_test_results(test_results_summary_t *results)
     results->expirations_not_plus1_count = 0u;
     results->expirations_plus1_count = 0u;
 
-    results->highest_percent = 0.0f;
-    results->lowest_percent = 100.0f;
+    results->highest_avg_percent = 0.0f;
+    results->lowest_avg_percent = 100.0f;
     float sum_percent = 0.0f;
+
+    results->highest_avg_ms = 0.0f;
+    results->lowest_avg_ms = 99999999.0f;
+    float sum_ms = 0.0f;
 
     results->highest_ms = 0.0f;
     results->lowest_ms = 99999999.0f;
-    float sum_ms = 0.0f;
 
     uint32_t total_time_ms = TOTAL_TEST_TIME_SECONDS * 1000UL;
 
@@ -150,24 +171,37 @@ static void _dump_test_results(test_results_summary_t *results)
             float avg_diff_ms = ((float) avg_diff_us) / 1000.0f;
             float percent_of_period = avg_diff_ms / (((float) _test_timers[i].ms) / 100.0f);
 
-            if (avg_diff_ms < results->lowest_ms)
+            float lowest_diff_ms = ((float) _test_timers[i].lowest_diff_us) / 1000.0f;
+            float highest_diff_ms = ((float) _test_timers[i].highest_diff_us) / 1000.0f;
+
+            if (lowest_diff_ms < results->lowest_ms)
             {
-                results->lowest_ms = avg_diff_ms;
+                results->lowest_ms = lowest_diff_ms;
             }
 
-            if (avg_diff_ms > results->highest_ms)
+            if (highest_diff_ms > results->highest_ms)
             {
-                results->highest_ms = avg_diff_ms;
+                results->highest_ms = highest_diff_ms;
             }
 
-            if (percent_of_period < results->lowest_percent)
+            if (avg_diff_ms < results->lowest_avg_ms)
             {
-                results->lowest_percent = percent_of_period;
+                results->lowest_avg_ms = avg_diff_ms;
             }
 
-            if (percent_of_period > results->highest_percent)
+            if (avg_diff_ms > results->highest_avg_ms)
             {
-                results->highest_percent = percent_of_period;
+                results->highest_avg_ms = avg_diff_ms;
+            }
+
+            if (percent_of_period < results->lowest_avg_percent)
+            {
+                results->lowest_avg_percent = percent_of_period;
+            }
+
+            if (percent_of_period > results->highest_avg_percent)
+            {
+                results->highest_avg_percent = percent_of_period;
             }
 
             results->expirations += 1u;
@@ -183,8 +217,8 @@ static void _dump_test_results(test_results_summary_t *results)
         }
     }
 
-    results->average_percent = sum_percent / ((float) results->expirations);
-    results->average_ms = sum_ms / ((float) results->expirations);
+    results->average_avg_percent = sum_percent / ((float) results->expirations);
+    results->average_avg_ms = sum_ms / ((float) results->expirations);
 }
 
 
@@ -201,13 +235,17 @@ int main(int argc, char *argv[])
 
     // Initialize all single-shot timer instances
     printf("\n");
-    printf("- initializing %u single-shot timers...\n", NUM_SINGLE_TIMERS);
+    printf("- initializing %u single-shot timers and %u repeating timers\n",
+           NUM_SINGLE_TIMERS, NUM_REPEAT_TIMERS);
+
     for (uint32_t i = 0u; i < NUM_SINGLE_TIMERS; i++)
     {
         _test_timers[i].ms = period_ms;
         _test_timers[i].last_us = timing_usecs_elapsed();
-        _test_timers[i].sum_diff_us = 0;
-        _test_timers[i].expirations = 0;
+        _test_timers[i].sum_diff_us = 0LL;
+        _test_timers[i].highest_diff_us = 0LL;
+        _test_timers[i].lowest_diff_us = 0LL;
+        _test_timers[i].expirations = 0UL;
         _test_timers[i].expired = false;
 
         err = app_timer_create(&_test_timers[i].timer, &_single_timer_callback, APP_TIMER_TYPE_SINGLE_SHOT);
@@ -241,8 +279,10 @@ int main(int argc, char *argv[])
     {
         _test_timers[i].ms = period_ms;
         _test_timers[i].last_us = timing_usecs_elapsed();
-        _test_timers[i].sum_diff_us = 0;
-        _test_timers[i].expirations = 0;
+        _test_timers[i].sum_diff_us = 0LL;
+        _test_timers[i].highest_diff_us = 0LL;
+        _test_timers[i].lowest_diff_us = 0LL;
+        _test_timers[i].expirations = 0UL;
         _test_timers[i].expired = false;
 
         err = app_timer_create(&_test_timers[i].timer, &_repeat_timer_callback, APP_TIMER_TYPE_REPEATING);
@@ -315,12 +355,14 @@ int main(int argc, char *argv[])
     printf("- %u\n\n", results.expirations_plus1_count);
 
     printf("Diff. between expected and measured period (as a relative percentage of timer period):\n");
-    printf("- Highest seen: %.2f\n", results.highest_percent);
-    printf("- Lowest seen: %.2f\n", results.lowest_percent);
-    printf("- Average: %.2f\n\n", results.average_percent);
+    printf("- Highest average seen for a single timer: %.2f\n", results.highest_avg_percent);
+    printf("- Lowest average seen for a single timer: %.2f\n", results.lowest_avg_percent);
+    printf("- Average across all timers: %.2f\n\n", results.average_avg_percent);
 
     printf("Diff. between expected and measured period (in absolute milliseconds):\n");
-    printf("- Highest seen: %.2f\n", results.highest_ms);
-    printf("- Lowest seen: %.2f\n", results.lowest_ms);
-    printf("- Average: %.2f\n\n", results.average_ms);
+    printf("- Highest average seen for a single timer: %.2f\n", results.highest_avg_ms);
+    printf("- Lowest average seen for a single timer: %.2f\n", results.lowest_avg_ms);
+    printf("- Average across all timers: %.2f\n", results.average_avg_ms);
+    printf("- Absolute lowest seen across all timers: %.2f\n", results.lowest_ms);
+    printf("- Absolute highest seen across all timers: %.2f\n\n", results.highest_ms);
 }
