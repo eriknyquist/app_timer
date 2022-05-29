@@ -5,11 +5,11 @@
 #include "timing.h"
 
 
-#define TOTAL_TEST_TIME_SECONDS (30u)
+#define TOTAL_TEST_TIME_SECONDS (60u)
 
 
-#define NUM_SINGLE_TIMERS (512u)
-#define NUM_REPEAT_TIMERS (512u)
+#define NUM_SINGLE_TIMERS (1024u)
+#define NUM_REPEAT_TIMERS (1024u)
 #define NUM_TEST_TIMERS (NUM_SINGLE_TIMERS + NUM_REPEAT_TIMERS)
 
 #define SINGLE_PERIOD_START_MS (200u)
@@ -136,16 +136,16 @@ static void _dump_test_results(test_results_summary_t *results)
         // Check if number of expirations matches expected
         if (expected_expirations != _test_timers[i].expirations)
         {
-            if ((expected_expirations < _test_timers[i].expirations) ||
-                ((expected_expirations - _test_timers[i].expirations) > 1))
+            int32_t int_diff = ((int32_t) expected_expirations) - ((int32_t) _test_timers[i].expirations);
+            uint32_t abs_diff = (int_diff < 0) ? ((uint32_t) int_diff * -1) : ((uint32_t) int_diff);
+
+            if (abs_diff > 1UL)
             {
-                {
-                    results->expirations_not_plus1_count += 1u;
-                }
+                results->expirations_not_plus1_count += 1UL;
             }
             else
             {
-                results->expirations_plus1_count += 1u;
+                results->expirations_plus1_count += 1UL;
             }
 
             printf("WARNING: timer #%u expired %u times, but expected %u (period is %ums, total time is %ums)\n",
@@ -348,10 +348,10 @@ int main(int argc, char *argv[])
     printf("periods between %u-%u milliseconds, for %u seconds total.\n\n",
            lowest_period_ms, highest_period_ms, TOTAL_TEST_TIME_SECONDS);
 
-    printf("No. of timers that differ from expected expiration counts by anything other than +1:\n");
+    printf("No. of timers that differ from expected expiration counts by more than 1:\n");
     printf("- %u\n\n", results.expirations_not_plus1_count);
 
-    printf("No. of timers that differ from expected expiration counts by +1:\n");
+    printf("No. of timers that differ from expected expiration counts by 1:\n");
     printf("- %u\n\n", results.expirations_plus1_count);
 
     printf("Diff. between expected and measured period (as a relative percentage of timer period):\n");
