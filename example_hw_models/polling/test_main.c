@@ -151,7 +151,7 @@ static void _dump_test_results(test_results_summary_t *results)
                 results->expirations_plus1_count += 1UL;
             }
 
-            printf("WARNING: timer #%u expired %u times, but expected %u (period is %ums, total time is %ums)\n",
+            printf("WARNING: timer #%u expired %"PRIu64" times, but expected %"PRIu64" (period is %ums, total time is %ums)\n",
                    i, _test_timers[i].expirations, expected_expirations, _test_timers[i].ms, total_time_ms);
 
             results->total_expected_expirations += expected_expirations;
@@ -214,7 +214,7 @@ static void _dump_test_results(test_results_summary_t *results)
             sum_ms += avg_diff_ms;
             sum_percent += percent_of_period;
 
-            printf("expirations=%u, avg_diff=%.2fms (%.2f%% of period)\n",
+            printf("expirations=%"PRIu64", avg_diff=%.2fms (%.2f%% of period)\n",
                    _test_timers[i].expirations, avg_diff_ms, percent_of_period);
         }
         else
@@ -353,10 +353,10 @@ int main(int argc, char *argv[])
            lowest_period_ms, highest_period_ms, TOTAL_TEST_TIME_SECONDS);
 
     printf("No. of timers that differ from expected expiration counts by more than 1:\n");
-    printf("- %u\n\n", results.expirations_not_plus1_count);
+    printf("- %"PRIu64"\n\n", results.expirations_not_plus1_count);
 
     printf("No. of timers that differ from expected expiration counts by 1:\n");
-    printf("- %u\n\n", results.expirations_plus1_count);
+    printf("- %"PRIu64"\n\n", results.expirations_plus1_count);
 
     printf("Diff. between expected and measured period (as a relative percentage of timer period):\n");
     printf("- Highest average seen for a single timer: %.2f\n", results.highest_avg_percent);
@@ -378,7 +378,9 @@ int main(int argc, char *argv[])
     double diff_percent = ((double) abs_diff) / (((double) results.total_expected_expirations) / 100.0);
 
     printf("Diff. between expected and actual total expiration count:\n");
-    printf("- %u total expirations occurred, out of expected %u\n");
+    printf("- %"PRIu64" total expirations occurred, out of expected %"PRIu64"\n",
+           results.total_actual_expirations, results.total_expected_expirations);
+
     printf("- Saw %.2f%% %s expirations than expected\n\n",
            diff_percent, desc);
 }
