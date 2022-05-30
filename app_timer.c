@@ -2,22 +2,16 @@
  * @file app_timer.c
  * @author Erik Nyquist
  *
- * @brief Implements a friendly abstraction layer for arbitrary non-blocking delays,
- *        or "application timers", based on a single HW timer/counter peripheral that
- *        can generate an interrupt when a specific count value is reached. Can handle
- *        any number of application timers running simultaneously (active application
- *        timers are maintained as a linked list, so if a very large number of
- *        application timers are active at once, this may degrade performance since
- *        the linked list of active application timers must be traversed each time
- *        the HW timer/counter interrupt fires).
+ * @brief Implements "application timers", allowing an arbitrary number of timed
+ *        events to be driven by a single timer/counter source.
  *
  *        How to use this module;
  *
  *        1. Implement a HW model (app_timer_hw_model_t) for the specific timer/counter
- *           hardware you wish to use for generating interrupts
+ *           hardware you wish to use for generating interrupts.
  *
  *        2. Ensure "app_timer_on_interrupt" is called in the interrupt handler for the
- *           timer/counter hardware being used
+ *           timer/counter hardware being used.
  *
  *        3. Ensure that either APP_TIMER_COUNT_UINT16 or APP_TIMER_COUNT_UINT32 is set --
  *           pick one that is large enough to hold all the bits of your hardware counter.
@@ -25,10 +19,10 @@
  *           but not APP_TIMER_COUNT_UINT16. If you don't define one of these options, the
  *           default is APP_TIMER_COUNT_UINT32.
  *
- *        4. Call app_timer_init() and pass in a pointer to the HW model you created
+ *        4. Call app_timer_init() and pass in a pointer to the HW model you created.
  *
  *        5. Now, app_timer_create and app_timer_start can be used to create as
- *           many timers as needed (see app_timer_api.h)
+ *           many application timers as needed (see app_timer_api.h).
  */
 
 #ifdef __cplusplus
