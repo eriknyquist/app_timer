@@ -45,11 +45,15 @@ extern "C" {
 #define FLAGS_TYPE_POS  (0x1u)
 
 
+//#define RUNNING_COUNT_INIT (0xffffu)
+#define RUNNING_COUNT_INIT (0x0u)
+
+
 /**
  * Keeps track of total elapsed timer counts, regardless of overflows, while there
  * are active timers
  */
-static volatile app_timer_running_count_t _running_timer_count = 0u;
+static volatile app_timer_running_count_t _running_timer_count = RUNNING_COUNT_INIT;
 
 
 /**
@@ -109,6 +113,20 @@ static bool _initialized = false;
 static app_timer_hw_model_t *_hw_model = NULL;
 
 
+static app_timer_running_count_t _ticks_until_expiry(app_timer_running_count_t now, app_timer_t *timer)
+{
+    app_timer_running_count_t now_minus_period = now - timer->total_counts;
+    if (now_minus_period >= timer->start_counts)
+    {
+        // Timer has already expired, or should expire right now
+        return 0u;
+    }
+
+    // Timer has not expired yet
+    return timer->start_counts - now_minus_period;
+}
+
+
 /**
  * Inserts a new timer into the doubly-linked list of active timers, ensuring that the order of the
  * list is maintained (the next timer to expire must always be the head of the list).
@@ -143,11 +161,8 @@ static void _insert_active_timer(app_timer_t *timer)
      * and insert the new timer before that one. */
     while (NULL != curr)
     {
-        // Timestamp for when this timer will expire
-        app_timer_running_count_t expiry = curr->start_counts + curr->total_counts;
-
         // Timer ticks until this timer expires (0u if it should have already expired)
-        app_timer_running_count_t ticks_until_expiry = (expiry > now) ? expiry - now : 0u;
+        app_timer_running_count_t ticks_until_expiry = _ticks_until_expiry(now, curr);
 
         if (ticks_until_expiry > timer->total_counts)
         {
@@ -259,7 +274,7 @@ static app_timer_running_count_t _total_timer_counts(void)
 static void _remove_expired_timers(app_timer_running_count_t now)
 {
     app_timer_t *head = _active_timers_head;
-    while ((NULL != head) && ((head->start_counts + head->total_counts) <= now))
+    while ((NULL != head) && (_ticks_until_expiry(now, head) == 0u))
     {
         // Unlink timer from active list
         _remove_active_timer(head);
@@ -367,9 +382,7 @@ void app_timer_on_interrupt(void)
     else
     {
         // Configure timer for the next expiration and re-start
-        app_timer_running_count_t expiry = _active_timers_head->start_counts + _active_timers_head->total_counts;
-        app_timer_running_count_t counts_until_expiry = (expiry > now) ? expiry - now : 1u;
-        _configure_timer(counts_until_expiry);
+        _configure_timer(_ticks_until_expiry(now, _active_timers_head));
         _hw_model->set_timer_running(true);
         _counts_after_last_start = _hw_model->read_timer_counts();
     }

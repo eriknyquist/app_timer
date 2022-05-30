@@ -34,11 +34,11 @@ uint64_t timing_usecs_elapsed(void)
         tick_value = tcounter.QuadPart;
     }
 
-    return (uint64_t) (tick_value / (_perf_freq / 1000000));
+    return (uint64_t) (tick_value / (_perf_freq / 1000000ULL));
 #elif defined(__linux__)
-    struct timeval timer = {.tv_sec=0ll, .tv_usec=0ll};
+    struct timeval timer = {.tv_sec=0LL, .tv_usec=0LL};
     (void) gettimeofday(&timer, NULL);
-    return (uint64_t) ((timer.tv_sec * 1000000ll) + timer.tv_usec);
+    return (uint64_t) ((timer.tv_sec * 1000000LL) + timer.tv_usec);
 #else
 #error "Platform not supported"
 #endif

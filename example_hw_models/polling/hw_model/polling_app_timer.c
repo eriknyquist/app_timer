@@ -11,16 +11,21 @@
 #include "polling_app_timer.h"
 #include "timing.h"
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 
-#define MAX_COUNT (0xffffffu)
+/**
+ * 0xFFFFFFFF microseconds is about 71 minutes
+ */
+#define MAX_COUNT (0xFFFFFFFFu)
+
 
 static bool _running = false;
 static app_timer_count_t _last_timer_counts = 0u;
-static uint64_t _last_timer_usecs = 0u;
+static app_timer_running_count_t _last_timer_usecs = 0u;
 
 
 static app_timer_running_count_t _ms_to_timer_counts(uint32_t ms)
@@ -58,7 +63,7 @@ static void _set_timer_running(bool enabled)
 
     if (enabled)
     {
-        _last_timer_usecs = timing_usecs_elapsed();
+        _last_timer_usecs = (app_timer_running_count_t) timing_usecs_elapsed();
     }
 }
 

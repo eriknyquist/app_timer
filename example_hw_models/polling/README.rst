@@ -6,6 +6,9 @@ polling a counter/timer value, which may be useful in cases where you don't have
 access to hardware timer interrupts. This hardware model is specifically for use on a
 modern Windows or Linux OS.
 
+How to set up build environment
+===============================
+
 Windows setup
 #############
 

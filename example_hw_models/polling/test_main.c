@@ -1,15 +1,16 @@
 #include <stdio.h>
+#include <inttypes.h>
 
 #include "app_timer_api.h"
 #include "polling_app_timer.h"
 #include "timing.h"
 
 
-#define TOTAL_TEST_TIME_SECONDS (60u)
+#define TOTAL_TEST_TIME_SECONDS (30)
 
 
-#define NUM_SINGLE_TIMERS (1024u)
-#define NUM_REPEAT_TIMERS (1024u)
+#define NUM_SINGLE_TIMERS (64u)
+#define NUM_REPEAT_TIMERS (64u)
 #define NUM_TEST_TIMERS (NUM_SINGLE_TIMERS + NUM_REPEAT_TIMERS)
 
 #define SINGLE_PERIOD_START_MS (200u)
@@ -30,8 +31,7 @@ typedef struct
     int64_t sum_diff_us;     ///< Sum of all differences between timer period and measured period
     int64_t lowest_diff_us;  ///< Lowest deviation seen (from timer period)
     int64_t highest_diff_us; ///< Highest deviation seen (from timer period)
-    uint32_t expirations;    ///< Total number of times this timer has expired
-    bool expired;            ///< False if never expired
+    uint64_t expirations;    ///< Total number of times this timer has expired
 } test_timer_t;
 
 
@@ -40,20 +40,22 @@ typedef struct
  */
 typedef struct
 {
-    float lowest_avg_percent;
-    float highest_avg_percent;
-    float average_avg_percent;
+    double lowest_avg_percent;
+    double highest_avg_percent;
+    double average_avg_percent;
 
-    float lowest_avg_ms;
-    float highest_avg_ms;
-    float average_avg_ms;
+    double lowest_avg_ms;
+    double highest_avg_ms;
+    double average_avg_ms;
 
-    float lowest_ms;
-    float highest_ms;
+    double lowest_ms;
+    double highest_ms;
 
-    uint32_t expirations_not_plus1_count;
-    uint32_t expirations_plus1_count;
-    uint32_t expirations;
+    uint64_t expirations_not_plus1_count;
+    uint64_t expirations_plus1_count;
+    uint64_t total_timers_with_expirations;
+    uint64_t total_expected_expirations;
+    uint64_t total_actual_expirations;
 } test_results_summary_t;
 
 
@@ -62,7 +64,6 @@ static test_timer_t _test_timers[NUM_TEST_TIMERS] = {0};
 
 static void _process_timer_expiration(test_timer_t *t)
 {
-    t->expired = true;
     t->expirations += 1u;
 
     uint64_t now_us = timing_usecs_elapsed();
@@ -111,17 +112,19 @@ static void _repeat_timer_callback(void *context)
 
 static void _dump_test_results(test_results_summary_t *results)
 {
-    results->expirations = 0u;
+    results->total_timers_with_expirations = 0u;
+    results->total_expected_expirations = 0u;
+    results->total_actual_expirations = 0u;
     results->expirations_not_plus1_count = 0u;
     results->expirations_plus1_count = 0u;
 
     results->highest_avg_percent = 0.0f;
     results->lowest_avg_percent = 100.0f;
-    float sum_percent = 0.0f;
+    double sum_percent = 0.0f;
 
     results->highest_avg_ms = 0.0f;
     results->lowest_avg_ms = 99999999.0f;
-    float sum_ms = 0.0f;
+    double sum_ms = 0.0f;
 
     results->highest_ms = 0.0f;
     results->lowest_ms = 99999999.0f;
@@ -131,13 +134,13 @@ static void _dump_test_results(test_results_summary_t *results)
     // Dump state for all single-shot timer instances
     for (uint32_t i = 0u; i < NUM_TEST_TIMERS; i++)
     {
-        uint32_t expected_expirations = (total_time_ms - 1UL) / _test_timers[i].ms;
+        uint64_t expected_expirations = (total_time_ms - 1UL) / _test_timers[i].ms;
 
         // Check if number of expirations matches expected
         if (expected_expirations != _test_timers[i].expirations)
         {
-            int32_t int_diff = ((int32_t) expected_expirations) - ((int32_t) _test_timers[i].expirations);
-            uint32_t abs_diff = (int_diff < 0) ? ((uint32_t) int_diff * -1) : ((uint32_t) int_diff);
+            int64_t int_diff = ((int64_t) expected_expirations) - ((int64_t) _test_timers[i].expirations);
+            uint64_t abs_diff = (int_diff < 0) ? ((uint64_t) int_diff * -1) : ((uint64_t) int_diff);
 
             if (abs_diff > 1UL)
             {
@@ -150,6 +153,8 @@ static void _dump_test_results(test_results_summary_t *results)
 
             printf("WARNING: timer #%u expired %u times, but expected %u (period is %ums, total time is %ums)\n",
                    i, _test_timers[i].expirations, expected_expirations, _test_timers[i].ms, total_time_ms);
+
+            results->total_expected_expirations += expected_expirations;
         }
 
         printf("timer #%u", i);
@@ -165,14 +170,14 @@ static void _dump_test_results(test_results_summary_t *results)
 
         printf("period=%ums ", _test_timers[i].ms);
 
-        if (_test_timers[i].expired)
+        if (0u < _test_timers[i].expirations)
         {
             int64_t avg_diff_us = _test_timers[i].sum_diff_us / (int64_t) _test_timers[i].expirations;
-            float avg_diff_ms = ((float) avg_diff_us) / 1000.0f;
-            float percent_of_period = avg_diff_ms / (((float) _test_timers[i].ms) / 100.0f);
+            double avg_diff_ms = ((double) avg_diff_us) / 1000.0;
+            double percent_of_period = avg_diff_ms / (((double) _test_timers[i].ms) / 100.0f);
 
-            float lowest_diff_ms = ((float) _test_timers[i].lowest_diff_us) / 1000.0f;
-            float highest_diff_ms = ((float) _test_timers[i].highest_diff_us) / 1000.0f;
+            double lowest_diff_ms = ((double) _test_timers[i].lowest_diff_us) / 1000.0f;
+            double highest_diff_ms = ((double) _test_timers[i].highest_diff_us) / 1000.0f;
 
             if (lowest_diff_ms < results->lowest_ms)
             {
@@ -204,7 +209,8 @@ static void _dump_test_results(test_results_summary_t *results)
                 results->highest_avg_percent = percent_of_period;
             }
 
-            results->expirations += 1u;
+            results->total_timers_with_expirations += 1u;
+            results->total_actual_expirations += _test_timers[i].expirations;
             sum_ms += avg_diff_ms;
             sum_percent += percent_of_period;
 
@@ -217,8 +223,8 @@ static void _dump_test_results(test_results_summary_t *results)
         }
     }
 
-    results->average_avg_percent = sum_percent / ((float) results->expirations);
-    results->average_avg_ms = sum_ms / ((float) results->expirations);
+    results->average_avg_percent = sum_percent / ((double) results->total_actual_expirations);
+    results->average_avg_ms = sum_ms / ((double) results->total_actual_expirations);
 }
 
 
@@ -246,7 +252,6 @@ int main(int argc, char *argv[])
         _test_timers[i].highest_diff_us = 0LL;
         _test_timers[i].lowest_diff_us = 0LL;
         _test_timers[i].expirations = 0UL;
-        _test_timers[i].expired = false;
 
         err = app_timer_create(&_test_timers[i].timer, &_single_timer_callback, APP_TIMER_TYPE_SINGLE_SHOT);
         if (APP_TIMER_OK != err)
@@ -283,7 +288,6 @@ int main(int argc, char *argv[])
         _test_timers[i].highest_diff_us = 0LL;
         _test_timers[i].lowest_diff_us = 0LL;
         _test_timers[i].expirations = 0UL;
-        _test_timers[i].expired = false;
 
         err = app_timer_create(&_test_timers[i].timer, &_repeat_timer_callback, APP_TIMER_TYPE_REPEATING);
         if (APP_TIMER_OK != err)
@@ -365,4 +369,16 @@ int main(int argc, char *argv[])
     printf("- Average across all timers: %.2f\n", results.average_avg_ms);
     printf("- Absolute lowest seen across all timers: %.2f\n", results.lowest_ms);
     printf("- Absolute highest seen across all timers: %.2f\n\n", results.highest_ms);
+
+    int64_t total_expected_exp = results.total_expected_expirations;
+    int64_t total_actual_exp = results.total_actual_expirations;
+    int64_t exp_diff = total_actual_exp - total_expected_exp;
+    const char *desc = (exp_diff < 0) ? "fewer" : "more";
+    uint64_t abs_diff = (exp_diff < 0) ? (uint64_t) (exp_diff * -1) : (uint64_t) exp_diff;
+    double diff_percent = ((double) abs_diff) / (((double) results.total_expected_expirations) / 100.0);
+
+    printf("Diff. between expected and actual total expiration count:\n");
+    printf("- %u total expirations occurred, out of expected %u\n");
+    printf("- Saw %.2f%% %s expirations than expected\n\n",
+           diff_percent, desc);
 }

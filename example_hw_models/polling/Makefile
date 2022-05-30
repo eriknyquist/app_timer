@@ -29,7 +29,7 @@ TEST_OBJ_FILES := $(patsubst %.c,%.o,$(addprefix $(OBJ_DIR)/,$(notdir $(TEST_SRC
 EXAMPLE_OBJ_FILES := $(patsubst %.c,%.o,$(addprefix $(OBJ_DIR)/,$(notdir $(EXAMPLE_SRC_FILES))))
 
 INCLUDES := $(addprefix -I, $(SRC_DIRS))
-FLAGS := -std=c99 -Wall -O2 -DAPP_TIMER_RUNNING_COUNT_UINT64
+FLAGS := -std=c99 -Wall -O2 -DAPP_TIMER_RUNNING_COUNT_UINT32 -DAPP_TIMER_COUNT_UINT32
 CFLAGS := $(FLAGS) $(INCLUDES)
 
 EXAMPLE_PROG := $(OUTPUT_DIR)/example_main
