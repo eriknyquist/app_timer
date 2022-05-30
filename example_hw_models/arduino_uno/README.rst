@@ -1,5 +1,5 @@
-Example HW model implementation and arduino sketches
-----------------------------------------------------
+Arduino HW model implementation and example arduino sketches
+------------------------------------------------------------
 
 These example files show how to implemenent an app_timer hardware model for the
 Arduino UNO platform, using the TIMER1 peripheral. An example arduino sketch is also

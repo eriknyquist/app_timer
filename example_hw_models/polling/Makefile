@@ -2,6 +2,8 @@ OUTPUT_DIR := build
 OBJ_DIR := $(OUTPUT_DIR)/obj
 
 ifeq ($(OS),Windows_NT)
+# Windows-specific vars; if you did a custom install of MinGW, or if you are using some
+# other compiler, then you might need to change some of these values
     BIN_DIR := C:/MinGW/bin
     GCC := $(BIN_DIR)/gcc
     LD := $(BIN_DIR)/ld
@@ -9,6 +11,7 @@ ifeq ($(OS),Windows_NT)
     RMDIR := rm -rf
 else
     ifeq ($(shell uname -s),Linux)
+# Linux-specific vars
         GCC := gcc
         LD := ld
         MKDIR := mkdir -p

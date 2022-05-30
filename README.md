@@ -37,8 +37,8 @@ See API documentation in `app_timer_api.h` for more details.
 
 ## Included hardware model and example sketch for Arduino UNO
 
-The `arduino_example/` directory contains an implementation of a hardware model for
-the Arduino UNO, and also an Arduino sketch (.ino file) that uses two app timer instances.
+The `example_hw_models/arduino_uno/` directory contains an implementation of a hardware model for
+the Arduino UNO, and also an example Arduino sketch (.ino file) that uses two app timer instances.
 
 ## Example sketch- app_timer_blinky.ino
 

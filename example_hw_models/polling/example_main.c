@@ -8,7 +8,7 @@
 static void print_timer_callback(void *context)
 {
     (void) context;
-    printf("timer exired\n");
+    printf("timer expired\n");
 }
 
 int main(int argc, char *argv[])

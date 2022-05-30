@@ -1,15 +1,15 @@
 /**
  * @file arduino_app_timer.c
  * @author Erik Nyquist
- * 
+ *
  * @brief Implements an app_timer HW model for the Arduino UNO platform, making use of the TIMER1
  *        peripheral to generate interrupts.
- * 
+ *
  *        Note that this HW model is not suitable for projects that are already using TIMER1; for example,
  *        some motor/servo libraries use TIMER1 to generate a PWM signal.
  */
 
-#include <Arduino.h> 
+#include <Arduino.h>
 #include <stdint.h>
 #include "arduino_app_timer.h"
 
