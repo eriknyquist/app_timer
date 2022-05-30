@@ -2,10 +2,11 @@ Hardware-agnostic  application timer layer in C
 ###############################################
 
 This module implements an application timer layer in pure C, which allows you to
-have an arbitrary number of timed events running at once, and provides a flexible absraction
-for the timer/counter source used to measure time (referred to as a "hardware model"). Wether your
-source of time is a timer interrupt in an embedded system, or a read-only monotonic counter that
-cannot generate interrupts, you can write a hardware model that will allow app_timer to work with it.
+use a single timer/counter source to drive an arbitrary number of timed events, and provides
+a flexible abstraction for the timer/counter source used to measure time (referred to as
+the "hardware model"). Wether your source of time is a timer interrupt in an embedded system,
+or a read-only monotonic counter that cannot generate interrupts, you can write a hardware
+model that will allow app_timer to work with it.
 
 If you are writing C or C++ for an embedded device that has a timer/counter peripheral that can
 be configured to generate an interrupt when a certain count value is reached, and you would
