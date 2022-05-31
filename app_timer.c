@@ -45,15 +45,11 @@ extern "C" {
 #define FLAGS_TYPE_POS  (0x1u)
 
 
-//#define RUNNING_COUNT_INIT (0xffffu)
-#define RUNNING_COUNT_INIT (0x0u)
-
-
 /**
  * Keeps track of total elapsed timer counts, regardless of overflows, while there
  * are active timers
  */
-static volatile app_timer_running_count_t _running_timer_count = RUNNING_COUNT_INIT;
+static volatile app_timer_running_count_t _running_timer_count = 0u;
 
 
 /**
