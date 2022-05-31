@@ -41,7 +41,7 @@ static app_timer_count_t _read_timer_counts(void)
         return 0u;
     }
 
-    return timing_usecs_elapsed() - _last_timer_usecs;
+    return (app_timer_count_t) (((app_timer_running_count_t) timing_usecs_elapsed()) - _last_timer_usecs);
 }
 
 

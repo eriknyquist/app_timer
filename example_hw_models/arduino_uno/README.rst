@@ -1,10 +1,10 @@
 Arduino HW model implementation and example arduino sketches
 ------------------------------------------------------------
 
-These example files show how to implemenent an app_timer hardware model for the
-Arduino UNO platform, using the TIMER1 peripheral. An example arduino sketch is also
-provided, which shows how to implement the classic "blinky" sketch using an app_timer
-instead of blocking delays.
+These example files show how to implement an app_timer hardware model driven by
+the TIMER1 interrupt on an arduino UNO. An example arduino sketch is also provided,
+which shows how to implement the classic "blinky" sketch using an app_timer instead
+of blocking delays.
 
 Running the blinky sketch
 =========================

@@ -6,11 +6,11 @@
 #include "timing.h"
 
 
-#define TOTAL_TEST_TIME_SECONDS (30)
+#define TOTAL_TEST_TIME_SECONDS (60u * 60u)
 
 
-#define NUM_SINGLE_TIMERS (64u)
-#define NUM_REPEAT_TIMERS (64u)
+#define NUM_SINGLE_TIMERS (128u)
+#define NUM_REPEAT_TIMERS (128u)
 #define NUM_TEST_TIMERS (NUM_SINGLE_TIMERS + NUM_REPEAT_TIMERS)
 
 #define SINGLE_PERIOD_START_MS (200u)
@@ -135,6 +135,7 @@ static void _dump_test_results(test_results_summary_t *results)
     for (uint32_t i = 0u; i < NUM_TEST_TIMERS; i++)
     {
         uint64_t expected_expirations = (total_time_ms - 1UL) / _test_timers[i].ms;
+        results->total_expected_expirations += expected_expirations;
 
         // Check if number of expirations matches expected
         if (expected_expirations != _test_timers[i].expirations)
@@ -153,8 +154,6 @@ static void _dump_test_results(test_results_summary_t *results)
 
             printf("WARNING: timer #%u expired %"PRIu64" times, but expected %"PRIu64" (period is %ums, total time is %ums)\n",
                    i, _test_timers[i].expirations, expected_expirations, _test_timers[i].ms, total_time_ms);
-
-            results->total_expected_expirations += expected_expirations;
         }
 
         printf("timer #%u", i);
@@ -241,6 +240,7 @@ int main(int argc, char *argv[])
 
     // Initialize all single-shot timer instances
     printf("\n");
+    printf("starting microseconds timestamp (uint32): %u\n\n", (uint32_t) timing_usecs_elapsed());
     printf("- initializing %u single-shot timers and %u repeating timers\n",
            NUM_SINGLE_TIMERS, NUM_REPEAT_TIMERS);
 
@@ -347,6 +347,7 @@ int main(int argc, char *argv[])
 
     printf("\n\n");
     printf("Summary:\n\n");
+    printf("ending microseconds timestamp (uint32): %u\n\n", (uint32_t) timing_usecs_elapsed());
     printf("Ran %u timers at once (%u single-shot and %u repeating), all with different\n",
            NUM_TEST_TIMERS, NUM_SINGLE_TIMERS, NUM_REPEAT_TIMERS);
     printf("periods between %u-%u milliseconds, for %u seconds total.\n\n",

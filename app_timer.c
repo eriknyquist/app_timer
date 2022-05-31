@@ -115,15 +115,14 @@ static app_timer_hw_model_t *_hw_model = NULL;
 
 static app_timer_running_count_t _ticks_until_expiry(app_timer_running_count_t now, app_timer_t *timer)
 {
-    app_timer_running_count_t now_minus_period = now - timer->total_counts;
-    if (now_minus_period >= timer->start_counts)
+    if ((timer->start_counts + timer->total_counts) < now)
     {
-        // Timer has already expired, or should expire right now
         return 0u;
     }
-
-    // Timer has not expired yet
-    return timer->start_counts - now_minus_period;
+    else
+    {
+        return (timer->start_counts + timer->total_counts) - now;
+    }
 }
 
 
