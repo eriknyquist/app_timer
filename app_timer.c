@@ -113,10 +113,20 @@ static bool _initialized = false;
 static app_timer_hw_model_t *_hw_model = NULL;
 
 
+/**
+ * Calculate number of ticks until an active timer expires. Should only be used on
+ * timers that are known to be active (i.e. timers linked into the active timers list).
+ *
+ * @param now    Current timestamp in ticks
+ * @param timer  Pointer to timer instance
+ *
+ * @return Ticks until timer should expire (will be 0 if timer should have already expired)
+ */
 static app_timer_running_count_t _ticks_until_expiry(app_timer_running_count_t now, app_timer_t *timer)
 {
     if ((timer->start_counts + timer->total_counts) < now)
     {
+        // Expiry was in the past
         return 0u;
     }
     else
@@ -358,11 +368,13 @@ void app_timer_on_interrupt(void)
     _hw_model->set_timer_running(true);
     _counts_after_last_start = _hw_model->read_timer_counts();
 
+    // Remove all expired timers from the active list
     _remove_expired_timers(now);
 
     // Re-enable interrupts to run handlers for expired timers
     _hw_model->set_interrupts_enabled(true, &int_status);
 
+    // Run callbacks for all expired timers
     _handle_expired_timers(now);
 
     // Disable interrupts to modify _running_timer_count and inspect active timers list
@@ -381,7 +393,16 @@ void app_timer_on_interrupt(void)
     else
     {
         // Configure timer for the next expiration and re-start
-        _configure_timer(_ticks_until_expiry(now, _active_timers_head));
+        app_timer_running_count_t ticks_until_expiry = _ticks_until_expiry(now, _active_timers_head);
+
+        /* If the head timer should have already expired, that means that it had not
+         * expired when _remove_expired_timers initially walked the list of active
+         * timers, but then it DID expire while we were executing timer callbacks
+         * in _handle_expired_timers. If that is the case, just configure the hardware
+         * for 1 tick, and the head timer will be handled in the next call (although
+         * it does have the downside that the head timer will expire at least 1 tick late) */
+        _configure_timer((ticks_until_expiry == 0u) ? 1u : ticks_until_expiry);
+
         _hw_model->set_timer_running(true);
         _counts_after_last_start = _hw_model->read_timer_counts();
     }
