@@ -20,11 +20,11 @@ else
 endif
 
 SRC_DIRS := ../.. ./hw_model
-VPATH := $(SRC_DIRS) .
+VPATH := $(SRC_DIRS) . examples
 
 COMMON_SRC_FILES := $(foreach DIR,$(SRC_DIRS),$(wildcard $(DIR)/*.c))
-TEST_SRC_FILES := $(COMMON_SRC_FILES) test_main.c
-EXAMPLE_SRC_FILES := $(COMMON_SRC_FILES) example_main.c
+TEST_SRC_FILES := $(COMMON_SRC_FILES) examples/test_main.c
+EXAMPLE_SRC_FILES := $(COMMON_SRC_FILES) examples/example_main.c
 TEST_OBJ_FILES := $(patsubst %.c,%.o,$(addprefix $(OBJ_DIR)/,$(notdir $(TEST_SRC_FILES))))
 EXAMPLE_OBJ_FILES := $(patsubst %.c,%.o,$(addprefix $(OBJ_DIR)/,$(notdir $(EXAMPLE_SRC_FILES))))
 

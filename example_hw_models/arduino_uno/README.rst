@@ -6,8 +6,8 @@ the TIMER1 interrupt on an arduino UNO. An example arduino sketch is also provid
 which shows how to implement the classic "blinky" sketch using an app_timer instead
 of blocking delays.
 
-Running the blinky sketch
-=========================
+How to run Arduino example sketch
+=================================
 
 #. Ensure you have the `Arduino IDE <https://www.arduino.cc/en/software>`_ installed
 
