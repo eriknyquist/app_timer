@@ -33,7 +33,7 @@ extern "C" {
 
 // Convert milliseconds to TIMER1 counts. Timer1 uses a 16MHz clock with a
 // prescaler of 1024, resulting in a tick rate of 15,625Hz
-static app_timer_running_count_t _ms_to_timer_counts(uint32_t ms)
+static app_timer_running_count_t _units_to_timer_counts(app_timer_period_t ms)
 {
     return ((HW_SYS_CLK_FREQ / 1024UL / 100UL) * ms) / 10UL;
 }
@@ -107,7 +107,7 @@ ISR(TIMER1_OVF_vect)
 // Hardware model definition
 static app_timer_hw_model_t _arduino_hw_model = {
     .init = _init,
-    .ms_to_timer_counts = _ms_to_timer_counts,
+    .units_to_timer_counts = _units_to_timer_counts,
     .read_timer_counts = _read_timer_counts,
     .set_timer_period_counts = _set_timer_period_counts,
     .set_timer_running = _set_timer_running,

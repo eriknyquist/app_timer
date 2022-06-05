@@ -36,6 +36,13 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 
+/**
+ * Defines the datatype used to represent the period for a timer (e.g. the
+ * 'time_from_now' parameter passed to app_timer_start)
+ */
+ #if !defined(APP_TIMER_PERIOD_UINT32) && !defined(APP_TIMER_PERIOD_UINT64)
+ #define APP_TIMER_PERIOD_UINT32
+ #endif
 
 /**
  * Defines the datatype used to represent a count value for the underlying hardware counter.
@@ -59,6 +66,22 @@ extern "C" {
 #if !defined(APP_TIMER_INT_UINT32) && !defined(APP_TIMER_INT_UINT64)
 #define APP_TIMER_INT_UINT32  // Store interrupt status value in 32 bits by default
 #endif
+
+/**
+ * Datatype used to represent the period for a timer (e.g. the 'time_from_now' parameter
+ * passed to app_timer_start).
+ *
+ * For example, if you are using a hardware model that expects milliseconds for timer periods,
+ * and uint32_t is used for timer periods, then the max. timer period you can pass to app_timer_start
+ * is 2^32 milliseconds, or about 49 days
+ */
+#if defined(APP_TIMER_PERIOD_UINT32)
+typedef uint32_t app_timer_period_t;
+#elif defined(APP_TIMER_PERIOD_UINT64)
+typedef uint64_t app_timer_period_t;
+#else
+#error "Timer period width is not defined"
+#endif // APP_TIMER_PERIOD_*
 
 
 /**
@@ -180,11 +203,11 @@ typedef struct
     /**
      * Convert milliseconds to HW timer/counter counts
      *
-     * @param ms   Time in millseconds
+     * @param time   Time in arbitrary units
      *
      * @return  Time in HW timer/counter counts
      */
-    app_timer_running_count_t (*ms_to_timer_counts)(uint32_t ms);
+    app_timer_running_count_t (*units_to_timer_counts)(app_timer_period_t time);
 
     /**
      * Read the current HW timer/counter counts
@@ -271,14 +294,17 @@ app_timer_error_e app_timer_create(app_timer_t *timer, app_timer_handler_t handl
  * Calling #app_timer_start on a timer that has already been started will have no effect
  * on the timer.
  *
- * @param timer        Pointer to timer instance to start. Must have already been
- *                     initialized by #app_timer_create).
- * @param ms_from_now  Timer expiration time, relative to now, in milliseconds.
- * @param context      Optional pointer to pass to handler function when it is called.
+ * @param timer          Pointer to timer instance to start. Must have already been
+ *                       initialized by #app_timer_create).
+ * @param time_from_now  Timer expiration time, relative to now, in units determined by the
+ *                       hardware model in use (the units_to_timer_ticks function in the hardware
+ *                       model is responsible for converting this value to timer/counter ticks).
+
+ * @param context        Optional pointer to pass to handler function when it is called.
  *
  * @return #APP_TIMER_OK if successful
  */
-app_timer_error_e app_timer_start(app_timer_t *timer, uint32_t ms_from_now, void *context);
+app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_from_now, void *context);
 
 
 /**

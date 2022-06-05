@@ -29,7 +29,7 @@ static app_timer_count_t _last_timer_counts = 0u;
 static app_timer_running_count_t _last_timer_usecs = 0u;
 
 
-static app_timer_running_count_t _ms_to_timer_counts(uint32_t ms)
+static app_timer_running_count_t _units_to_timer_counts(app_timer_period_t ms)
 {
     return ((app_timer_running_count_t) ms) * 1000ULL;
 }
@@ -86,7 +86,7 @@ static bool _init(void)
 // Hardware model definition
 static app_timer_hw_model_t _polling_hw_model = {
     .init = _init,
-    .ms_to_timer_counts = _ms_to_timer_counts,
+    .units_to_timer_counts = _units_to_timer_counts,
     .read_timer_counts = _read_timer_counts,
     .set_timer_period_counts = _set_timer_period_counts,
     .set_timer_running = _set_timer_running,

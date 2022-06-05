@@ -435,7 +435,7 @@ app_timer_error_e app_timer_create(app_timer_t *timer, app_timer_handler_t handl
 /**
  * @see timer_api.h
  */
-app_timer_error_e app_timer_start(app_timer_t *timer, uint32_t ms_from_now, void *context)
+app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_from_now, void *context)
 {
     if (!_initialized)
     {
@@ -453,7 +453,7 @@ app_timer_error_e app_timer_start(app_timer_t *timer, uint32_t ms_from_now, void
         return APP_TIMER_OK;
     }
 
-    app_timer_running_count_t total_counts = _hw_model->ms_to_timer_counts(ms_from_now);
+    app_timer_running_count_t total_counts = _hw_model->units_to_timer_counts(time_from_now);
 
     /* Disable interrupts, don't want the timer ISR to interrupt modification
      * of the list of active timers, or modification of the timer instance */
@@ -561,7 +561,7 @@ app_timer_error_e app_timer_init(app_timer_hw_model_t *model)
 
     if ((0u == model->max_count) ||
         (NULL == model->init) ||
-        (NULL == model->ms_to_timer_counts) ||
+        (NULL == model->units_to_timer_counts) ||
         (NULL == model->read_timer_counts) ||
         (NULL == model->set_timer_period_counts) ||
         (NULL == model->set_timer_running) ||
