@@ -30,20 +30,15 @@ Features / limitations
   or a completely synchronous app_timer layer that relies on a polling loop, or something else
   entirely. See examples in ``example_hw_models``.
 
-- No dynamic memory allocation, and no hard limit on the number of timers that can be running simultaneously; when you call
-  app_timer_start, your app_timer_t struct is linked into to a linked list of active timers, so all of your app_timer_t instances
-  can be statically allocated if you want them to be, and there is no limit to how many app_timer_t instances can be running
-  simulatenously (depending, that is, on your performance requirements; see next item...)
-
-- Can handle any number of application timers running simultaneously, BUT the entire linked list of active timers may
-  need to be traversed each time ``app_timer_on_interrupt`` is invoked (specifically, it will traverse the list until it
-  finds a timer that has not expired yet), so in the case where there are a very large number of simultaneous active application
-  timers, ``app_timer_on_interrupt`` may take noticeably more time to execute.
+- No dynamic memory allocation, and no limit on the number of timers that can be running simultaneously. When you call
+  app_timer_start, your app_timer_t struct is linked into to a linked list with all other active timers (timers that
+  have been started but not yet expired). The number of timers you can have running at once is really only limited by
+  how much memory your system has available for declaring app_timer_t structs, whether statically or otherwise.
 
 - Automatic handling of timer/counter overflow; if you are using a timer/counter, for example, which overflows after
-  12 hours with your specific configuration, and you call ``app_timer_start`` with an expiry time of 14 hours,
-  then the overflow will be handled behind the scenes by the ``app_timer`` module and your callback will still be
-  invoked after 14 hours (as long as your have correctly set the ``max_count`` value in your hardware model).
+  30 minutes with your specific configuration, and you call ``app_timer_start`` with an expiry time of 72 hours,
+  then the overflow will be handled behind the scenes by the ``app_timer`` module and your timer callback will still
+  only be invoked after 72 hours.
 
 Included hardware model and example sketch for Arduino UNO
 ----------------------------------------------------------
