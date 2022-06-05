@@ -1,7 +1,7 @@
 Hardware-agnostic  application timer layer in C
 ###############################################
 
-This module implements an application timer layer in pure C, which allows you to
+This module implements an application timer layer in C, which allows you to
 use a single timer/counter source to drive an arbitrary number of timed events, and provides
 a flexible abstraction for the timer/counter source used to measure time (referred to as
 the "hardware model"). Wether your source of time is a timer interrupt in an embedded system,
@@ -26,9 +26,15 @@ See API documentation in ``app_timer_api.h`` for more details.
 Features / limitations
 ----------------------
 
+- Use a single monotonic timer/counter source to drive many timed events.
+
+- Written in pure C99, with no external dependencies, just the standard C lib
+  (specifically, ``stdlib.h``, ``stdbool.h``, and ``stdint.h`` are required).
+
 - Flexible interface-- implement an interrupt-based app_timer layer for a microcontroller,
-  or a completely synchronous app_timer layer that relies on a polling loop, or something else
-  entirely. See examples in ``example_hw_models``.
+  or a completely synchronous app_timer layer that relies on a polling loop with no interupts,
+  or something else entirely. There are no OS-specific or hardware-specific dependencies. You
+  can adapt ``app_timer`` to many different systems and situations (see examples in ``example_hw_models``).
 
 - No dynamic memory allocation, and no limit on the number of timers that can be running simultaneously. When you call
   app_timer_start, your app_timer_t struct is linked into to a linked list with all other active timers (timers that

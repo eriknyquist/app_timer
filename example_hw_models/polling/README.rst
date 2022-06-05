@@ -64,7 +64,7 @@ starts the timer, and then enters an infinite loop running the ``polling_app_tim
 Build test_main.c example program, both Windows and Linux
 #########################################################
 
-This program creates hundreds of timers with different periods, runs them all for 80 minutes,
+This program creates hundreds of timers with different periods, runs them all at once for 80 minutes,
 and then prints out some collected metrics about their measured accuracy and behaviour.
 
 #. Run make with the 'test' target:
