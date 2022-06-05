@@ -31,8 +31,8 @@
 #define TOTAL_TEST_TIME_SECONDS (80u * 60u) ///< Total runtime for all timers, seconds
 #define TIME_LOG_INTERVAL_SECS  (300u)       ///< How often to log runtime remaining, seconds
 
-#define NUM_SINGLE_TIMERS (128u)             ///< Number of single-shot timers to create (re-started in timer callback)
-#define NUM_REPEAT_TIMERS (128u)             ///< Number of repeating timers to create
+#define NUM_SINGLE_TIMERS (256u)             ///< Number of single-shot timers to create (re-started in timer callback)
+#define NUM_REPEAT_TIMERS (256u)             ///< Number of repeating timers to create
 #define NUM_TEST_TIMERS \
     (NUM_SINGLE_TIMERS + NUM_REPEAT_TIMERS)  ///< Total number of timers
 
@@ -178,7 +178,7 @@ static void _dump_test_results(test_results_summary_t *results)
     results->highest_ms = 0.0f;
     results->lowest_ms = 99999999.0f;
 
-    uint32_t total_time_ms = TOTAL_TEST_TIME_SECONDS * 1000UL;
+    uint64_t total_time_ms = TOTAL_TEST_TIME_SECONDS * 1000u;
 
     // Dump state for all single-shot timer instances
     for (uint32_t i = 0u; i < NUM_TEST_TIMERS; i++)
@@ -211,7 +211,7 @@ static void _dump_test_results(test_results_summary_t *results)
             }
 
             _log("%s timer #%u: %"PRIu64" expirations, but expected %"PRIu64" (diff=%"PRIi64", period=%ums)\n",
-                 msg_type, i, _test_timers[i].expirations, expected_expirations, _test_timers[i].ms, total_time_ms);
+                 msg_type, i, _test_timers[i].expirations, expected_expirations, int_diff, _test_timers[i].ms);
         }
 
 #if VERBOSE
@@ -441,17 +441,17 @@ int main(int argc, char *argv[])
     printf("periods between %u-%u milliseconds, for %u seconds total.\n\n",
            lowest_period_ms, highest_period_ms, TOTAL_TEST_TIME_SECONDS);
 
-    printf("No. of timers that differ from expected expiration counts by more than 1:\n");
-    printf("- %"PRIu64"\n\n", results.expirations_not_plus1_count);
-
     printf("No. of timers that differ from expected expiration counts by 1:\n");
     printf("- %"PRIu64"\n\n", results.expirations_plus1_count);
+
+    printf("No. of timers that differ from expected expiration counts by more than 1:\n");
+    printf("- %"PRIu64"\n\n", results.expirations_not_plus1_count);
 
     printf("Absolute highest deviation seen from expected expiration counts:\n");
     printf("- %"PRIu64"\n\n", results.highest_expiration_diff);
 
     printf("Highest app_timer_on_interrupt execution time:\n");
-    printf("- %.4f milliseconds\n", ((float) (highest_poll_time_us)) / 1000.0f);
+    printf("- %.4f milliseconds\n\n", ((float) (highest_poll_time_us)) / 1000.0f);
 
     int64_t total_expected_exp = results.total_expected_expirations;
     int64_t total_actual_exp = results.total_actual_expirations;
