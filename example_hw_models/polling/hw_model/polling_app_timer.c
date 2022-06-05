@@ -18,9 +18,10 @@ extern "C" {
 
 
 /**
- * 0xFFFFFFFF microseconds is about 71 minutes
+ * 60 minutes in microseconds-- leaves a good 11 minutes of slack to ensure we don't overflow
+ * a uint32 before the polling loop makes it around
  */
-#define MAX_COUNT (0xFFFFFFFFu)
+#define MAX_COUNT (60u * 60 * 1000u * 1000u)
 
 
 static bool _running = false;
@@ -59,12 +60,12 @@ static void _set_timer_running(bool enabled)
         return;
     }
 
-    _running = enabled;
-
     if (enabled)
     {
         _last_timer_usecs = (app_timer_running_count_t) timing_usecs_elapsed();
     }
+
+    _running = enabled;
 }
 
 

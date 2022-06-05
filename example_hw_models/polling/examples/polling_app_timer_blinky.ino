@@ -1,9 +1,11 @@
 /**
  * Example sketch showing how to use the app_timer module to re-create
- * the "blinky" sketch with a polling app_timer hardware model
+ * the "blinky" sketch with a polling app_timer hardware model (no interrupts)
  */
 
+
 #include "polling_app_timer.h"
+
 
 static app_timer_t blink_timer;
 static app_timer_t print_timer;

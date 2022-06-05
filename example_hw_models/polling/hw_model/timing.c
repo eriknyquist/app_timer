@@ -50,7 +50,7 @@ uint64_t timing_usecs_elapsed(void)
     return (uint64_t) micros();
 #else
 #error "Platform not supported"
-#endif
+#endif // _WIN32
 }
 
 
