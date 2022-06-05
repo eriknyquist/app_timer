@@ -321,9 +321,6 @@ static void _handle_expired_timers(app_timer_running_count_t now)
             curr->handler(curr->context);
         }
 
-        // Update our notion of "now", handler may have taken significant time
-        now = _total_timer_counts();
-
         // Extract timer type from flags var
         app_timer_type_e type = (app_timer_type_e) ((curr->flags & FLAGS_TYPE_MASK) >> FLAGS_TYPE_POS);
 
