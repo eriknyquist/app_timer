@@ -111,7 +111,7 @@ void polling_app_timer_poll(void)
     app_timer_count_t now = _read_timer_counts();
     if (now >= _last_timer_counts)
     {
-        app_timer_on_interrupt();
+        app_timer_target_count_reached();
     }
 }
 

@@ -100,7 +100,7 @@ static bool _init(void)
 // ISR for timer interrupt
 ISR(TIMER1_OVF_vect)
 {
-    app_timer_on_interrupt();
+    app_timer_target_count_reached();
 }
 
 

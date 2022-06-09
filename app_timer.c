@@ -10,7 +10,7 @@
  *        1. Implement a HW model (app_timer_hw_model_t) for the specific timer/counter
  *           hardware you wish to use for generating interrupts.
  *
- *        2. Ensure "app_timer_on_interrupt" is called in the interrupt handler for the
+ *        2. Ensure "app_timer_target_count_reached" is called in the interrupt handler for the
  *           timer/counter hardware being used.
  *
  *        3. Ensure that either APP_TIMER_COUNT_UINT16 or APP_TIMER_COUNT_UINT32 is set --
@@ -94,7 +94,7 @@ static volatile app_timer_count_t _last_timer_period = 0u;
 static volatile app_timer_count_t _counts_after_last_start = 0u;
 
 /**
- * True when app_timer_on_interrupt is executing
+ * True when app_timer_target_count_reached is executing
  */
 static volatile bool _isr_running = false;
 
@@ -118,7 +118,7 @@ static app_timer_hw_model_t *_hw_model = NULL;
  *
  * @return Ticks until timer should expire (will be 0 if timer should have already expired)
  */
-static app_timer_running_count_t _ticks_until_expiry(app_timer_running_count_t now, app_timer_t *timer)
+static inline app_timer_running_count_t _ticks_until_expiry(app_timer_running_count_t now, app_timer_t *timer)
 {
     app_timer_running_count_t expiry = timer->start_counts + timer->total_counts;
 
@@ -261,7 +261,7 @@ static void _configure_timer(app_timer_running_count_t total_counts)
  * Returns the total number of ticks elapsed since the first of the currently active
  * app_timer instances were started (Should return 0 when no app_timer instances are running)
  */
-static app_timer_running_count_t _total_timer_counts(void)
+static inline app_timer_running_count_t _total_timer_counts(void)
 {
     app_timer_count_t ticks_elapsed = _hw_model->read_timer_counts() - _counts_after_last_start;
     return _running_timer_count + ((app_timer_running_count_t) ticks_elapsed);
@@ -343,11 +343,12 @@ static void _handle_expired_timers(app_timer_running_count_t now)
 /**
  * @see app_timer_api.h
  */
-void app_timer_on_interrupt(void)
+void app_timer_target_count_reached(void)
 {
-    /* Set flag indicating the ISR is running, so that any calls to app_timer_start
-     * inside handlers will know not to configure the timer. This does not need
-     * to be protected from interrupts. */
+    /* Set flag indicating we are in the function handling an elapsed count, so
+     * that any calls to app_timer_start inside handlers will know not to configure
+     * the timer, since we will do that at the end of this function. This does not
+     * need to be protected from interrupts. */
     _isr_running = true;
 
     // Disable interrupts to update _running_timer_count and pop expired timers off the list
@@ -357,7 +358,7 @@ void app_timer_on_interrupt(void)
     _running_timer_count += (app_timer_running_count_t) _last_timer_period;
     app_timer_running_count_t now = _running_timer_count;
 
-    // Stop the timer counter, re-start it to time how long ISR takes
+    // Stop the timer counter, re-start it to time how long it takes to handle all expired timers
     _hw_model->set_timer_running(false);
     _configure_timer(_hw_model->max_count);
     _hw_model->set_timer_running(true);
@@ -457,8 +458,8 @@ app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_fr
 
     app_timer_running_count_t total_counts = _hw_model->units_to_timer_counts(time_from_now);
 
-    /* Disable interrupts, don't want the timer ISR to interrupt modification
-     * of the list of active timers, or modification of the timer instance */
+    /* Disable interrupts, don't want another app_timer function being called from ISR
+     * context to interrupt modification of the list of active timers */
     app_timer_int_status_t int_status = 0u;
     _hw_model->set_interrupts_enabled(false, &int_status);
 
@@ -474,13 +475,13 @@ app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_fr
     if (only_timer && !_isr_running)
     {
         /* No other timers are running, and we're not being called from
-         * app_timer_on_interrupt, so start_counts should be 0. */
+         * app_timer_target_count_reached, so start_counts should be 0. */
         timer->start_counts = 0u;
     }
     else
     {
         /* Other timers are already running, or we are being called from
-         * app_timer_on_interrupt. Calculate timestamp for start_counts based on
+         * app_timer_target_count_reached. Calculate timestamp for start_counts based on
          * the current HW timer/counter value. */
         timer->start_counts = _total_timer_counts();
     }
@@ -526,8 +527,8 @@ app_timer_error_e app_timer_stop(app_timer_t *timer)
         return APP_TIMER_INVALID_PARAM;
     }
 
-    /* Disable interrupts, don't want the timer ISR to interrupt modification of
-     * the list of active timers */
+    /* Disable interrupts, don't want another app_timer function being called from ISR
+     * context to interrupt modification of the list of active timers */
     app_timer_int_status_t int_status = 0u;
     _hw_model->set_interrupts_enabled(false, &int_status);
 
