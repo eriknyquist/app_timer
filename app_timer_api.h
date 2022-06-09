@@ -10,7 +10,7 @@
  *        1. Implement a HW model (app_timer_hw_model_t) for the specific timer/counter
  *           hardware you wish to use for generating interrupts.
  *
- *        2. Ensure "app_timer_on_interrupt" is called in the interrupt handler for the
+ *        2. Ensure "app_timer_target_count_reached" is called in the interrupt handler for the
  *           timer/counter hardware being used.
  *
  *        3. Ensure that either APP_TIMER_COUNT_UINT16 or APP_TIMER_COUNT_UINT32 is set --
@@ -170,10 +170,10 @@ typedef enum
  */
 typedef struct _app_timer_t
 {
-    struct _app_timer_t *volatile next;               ///< Timer scheduled to expire after this one
-    struct _app_timer_t *volatile previous;           ///< Timer scheduled to expire before this one
     volatile app_timer_running_count_t start_counts;  ///< Timer counts when timer was started
     volatile app_timer_running_count_t total_counts;  ///< Total timer counts until the next expiry
+    struct _app_timer_t *volatile next;               ///< Timer scheduled to expire after this one
+    struct _app_timer_t *volatile previous;           ///< Timer scheduled to expire before this one
     app_timer_handler_t handler;                      ///< Handler to run on expiry
     void *context;                                    ///< Optional pointer to extra data
 
@@ -238,10 +238,10 @@ typedef struct
      *                    This function should disable/enable whatever interrupts are necessary
      *                    to protect access to the list of active timers, and that really depends
      *                    on your specific system setup; 'app_timer_start', 'app_timer_stop' and
-     *                    'app_timer_on_interrupt' all modify the list of active timers, and if you
+     *                    'app_timer_target_count_reached' all modify the list of active timers, and if you
      *                    only ever call these functions in the same context (e.g. an ISR which is
      *                    always the same priority), then you may not need to disable any interrupts
-     *                    here at all. Conversely, if you call 'app_timer_on_interrupt' in the
+     *                    here at all. Conversely, if you call 'app_timer_target_count_reached' in the
      *                    lowest-priority interrupt context, and 'app_timer_start'/'app_timer_stop'
      *                    in higher-priority interrupt contexts, then you might need to disable all
      *                    the higher-priority interrupts, or perhaps just all interrupts entirely.
@@ -262,10 +262,13 @@ typedef struct
 
 
 /**
- * Interrupt handler for the HW timer/counter. This function should be called by
- * application-specific code inside the interrupt handler for timer/counter expiration.
+ * This function must be called whenever the last HW timer/counter period set by the
+ * last call to set_timer_period_counts (in the hardware model) has elapsed. For example,
+ * If you are implementing an interrupt-driven app_timer layer, you probably want to
+ * call this function inside the interrupt handler for expiration of the timer/counter
+ * peripheral you are using.
  */
-void app_timer_on_interrupt(void);
+void app_timer_target_count_reached(void);
 
 
 /**
@@ -273,7 +276,7 @@ void app_timer_on_interrupt(void);
  * started with #app_timer_start.
  *
  * @param timer    Pointer to timer instance to initialize
- * @param handler  Handler to run on timer expiry. The handler will be called by 'app_timer_on_interrupt'.
+ * @param handler  Handler to run on timer expiry. The handler will be called by 'app_timer_target_count_reached'.
  *                 The handler should return as quickly as possible; If the handler takes longer than
  *                 hw_model.max_count to return, then the app_timer module may fail to maintain an
  *                 accurate notion of time, which may cause future timer instances to expire at

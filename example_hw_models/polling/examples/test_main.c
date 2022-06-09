@@ -7,7 +7,7 @@
  *
  * This is a useful smoke test to verify basic functionality and correctness of
  * maintaining notion of time, which can be easily run on a windows or linux development
- * system. The only thing we can't really test here is interrupt safefty (app_timer_on_interrupt
+ * system. The only thing we can't really test here is interrupt safefty (app_timer_target_count_reached
  * and other app_timer functions are not being called in interrupt contexts, as they may
  * be on an embedded system).
  */
@@ -28,11 +28,11 @@
 #endif // VERBOSE
 
 
-#define TOTAL_TEST_TIME_SECONDS (80u * 60u) ///< Total runtime for all timers, seconds
+#define TOTAL_TEST_TIME_SECONDS (5u * 60u) ///< Total runtime for all timers, seconds
 #define TIME_LOG_INTERVAL_SECS  (300u)       ///< How often to log runtime remaining, seconds
 
-#define NUM_SINGLE_TIMERS (256u)             ///< Number of single-shot timers to create (re-started in timer callback)
-#define NUM_REPEAT_TIMERS (256u)             ///< Number of repeating timers to create
+#define NUM_SINGLE_TIMERS (512u)             ///< Number of single-shot timers to create (re-started in timer callback)
+#define NUM_REPEAT_TIMERS (512u)             ///< Number of repeating timers to create
 #define NUM_TEST_TIMERS \
     (NUM_SINGLE_TIMERS + NUM_REPEAT_TIMERS)  ///< Total number of timers
 
@@ -450,7 +450,7 @@ int main(int argc, char *argv[])
     printf("Absolute highest deviation seen from expected expiration counts:\n");
     printf("- %"PRIu64"\n\n", results.highest_expiration_diff);
 
-    printf("Highest app_timer_on_interrupt execution time:\n");
+    printf("Highest app_timer_target_count_reached execution time:\n");
     printf("- %.4f milliseconds\n\n", ((float) (highest_poll_time_us)) / 1000.0f);
 
     int64_t total_expected_exp = results.total_expected_expirations;
