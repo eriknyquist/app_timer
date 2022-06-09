@@ -170,10 +170,10 @@ typedef enum
  */
 typedef struct _app_timer_t
 {
-    struct _app_timer_t *volatile next;               ///< Timer scheduled to expire after this one
-    struct _app_timer_t *volatile previous;           ///< Timer scheduled to expire before this one
     volatile app_timer_running_count_t start_counts;  ///< Timer counts when timer was started
     volatile app_timer_running_count_t total_counts;  ///< Total timer counts until the next expiry
+    struct _app_timer_t *volatile next;               ///< Timer scheduled to expire after this one
+    struct _app_timer_t *volatile previous;           ///< Timer scheduled to expire before this one
     app_timer_handler_t handler;                      ///< Handler to run on expiry
     void *context;                                    ///< Optional pointer to extra data
 
