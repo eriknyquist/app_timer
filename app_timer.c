@@ -120,14 +120,16 @@ static app_timer_hw_model_t *_hw_model = NULL;
  */
 static app_timer_running_count_t _ticks_until_expiry(app_timer_running_count_t now, app_timer_t *timer)
 {
-    if ((timer->start_counts + timer->total_counts) < now)
+    app_timer_running_count_t expiry = timer->start_counts + timer->total_counts;
+
+    if (expiry < now)
     {
         // Expiry was in the past
         return 0u;
     }
     else
     {
-        return (timer->start_counts + timer->total_counts) - now;
+        return expiry - now;
     }
 }
 
