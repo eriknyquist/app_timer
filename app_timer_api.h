@@ -7,7 +7,7 @@
  *
  *        How to use this module;
  *
- *        1. Implement a HW model (app_timer_hw_model_t) for the specific timer/counter
+ *        1. Implement a hardware model (app_timer_hw_model_t) for the specific timer/counter
  *           hardware you wish to use for generating interrupts.
  *
  *        2. Ensure "app_timer_target_count_reached" is called in the interrupt handler for the
@@ -19,7 +19,7 @@
  *           but not APP_TIMER_COUNT_UINT16. If you don't define one of these options, the
  *           default is APP_TIMER_COUNT_UINT32.
  *
- *        4. Call app_timer_init() and pass in a pointer to the HW model you created.
+ *        4. Call app_timer_init() and pass in a pointer to the hardware model you created.
  *
  *        5. Now, app_timer_create and app_timer_start can be used to create as
  *           many application timers as needed (see app_timer_api.h).
@@ -194,30 +194,30 @@ typedef struct _app_timer_t
 typedef struct
 {
     /**
-     * Initialize the HW timer/counter
+     * Initialize the hardware timer/counter
      *
      * @return  True if successful, otherwise false
      */
     bool (*init)(void);
 
     /**
-     * Convert milliseconds to HW timer/counter counts
+     * Convert milliseconds to hardware timer/counter counts
      *
      * @param time   Time in arbitrary units
      *
-     * @return  Time in HW timer/counter counts
+     * @return  Time in hardware timer/counter counts
      */
     app_timer_running_count_t (*units_to_timer_counts)(app_timer_period_t time);
 
     /**
-     * Read the current HW timer/counter counts
+     * Read the current hardware timer/counter counts
      *
-     * @return  Current HW timer/counter counts
+     * @return  Current hardware timer/counter counts
      */
     app_timer_count_t (*read_timer_counts)(void);
 
     /**
-     * Configure the HW timer/counter to generate an interrupt after a specific number of counts
+     * Configure the hardware timer/counter to generate an interrupt after a specific number of counts
      *
      * @param counts  Number of counts after which a timer interrupt should be generated
      *                (this will always be <= #max_count)
@@ -225,7 +225,7 @@ typedef struct
     void (*set_timer_period_counts)(app_timer_count_t counts);
 
     /**
-     * Start/Stop the HW counter running
+     * Start/Stop the hardware counter running
      *
      * @param enabled  If true, start counting. If false, stop counting.
      */
@@ -255,14 +255,14 @@ typedef struct
     void (*set_interrupts_enabled)(bool enabled, app_timer_int_status_t *int_status);
 
     /**
-     * The maximum value that the HW timer/counter can count up to before overflowing
+     * The maximum value that the timer/counter can count up to before overflowing
      */
     app_timer_count_t max_count;
 } app_timer_hw_model_t;
 
 
 /**
- * This function must be called whenever the last HW timer/counter period set by the
+ * This function must be called whenever the timer/counter period set by the
  * last call to set_timer_period_counts (in the hardware model) has elapsed. For example,
  * If you are implementing an interrupt-driven app_timer layer, you probably want to
  * call this function inside the interrupt handler for expiration of the timer/counter

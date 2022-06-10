@@ -7,7 +7,7 @@
  *
  *        How to use this module;
  *
- *        1. Implement a HW model (app_timer_hw_model_t) for the specific timer/counter
+ *        1. Implement a hardware model (app_timer_hw_model_t) for the specific timer/counter
  *           hardware you wish to use for generating interrupts.
  *
  *        2. Ensure "app_timer_target_count_reached" is called in the interrupt handler for the
@@ -19,7 +19,7 @@
  *           but not APP_TIMER_COUNT_UINT16. If you don't define one of these options, the
  *           default is APP_TIMER_COUNT_UINT32.
  *
- *        4. Call app_timer_init() and pass in a pointer to the HW model you created.
+ *        4. Call app_timer_init() and pass in a pointer to the hardware model you created.
  *
  *        5. Now, app_timer_create and app_timer_start can be used to create as
  *           many application timers as needed (see app_timer_api.h).
@@ -89,7 +89,7 @@ static app_timer_t *volatile _expired_timers_tail = NULL;
 static volatile app_timer_count_t _last_timer_period = 0u;
 
 /**
- * HW timer/counter value after it was last started (some timer/counters do not start counting from 0)
+ * Hardware timer/counter value after it was last started (some timer/counters do not start counting from 0)
  */
 static volatile app_timer_count_t _counts_after_last_start = 0u;
 
@@ -104,7 +104,7 @@ static volatile bool _isr_running = false;
 static bool _initialized = false;
 
 /**
- * Pointer to the HW model in use
+ * Pointer to the hardware model in use
  */
 static app_timer_hw_model_t *_hw_model = NULL;
 
@@ -241,7 +241,7 @@ static void _remove_active_timer(app_timer_t *timer)
 
 
 /**
- * Helper function to configure the HW timer/counter and start it
+ * Helper function to configure the hardware timer/counter and start it
  *
  * @param total_counts   Total timer/counter counts until expiry (this value may be larger
  *                       than _hw_model.max_count)
@@ -482,14 +482,14 @@ app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_fr
     {
         /* Other timers are already running, or we are being called from
          * app_timer_target_count_reached. Calculate timestamp for start_counts based on
-         * the current HW timer/counter value. */
+         * the current hardware timer/counter value. */
         timer->start_counts = _total_timer_counts();
     }
 
     // Insert timer into list
     _insert_active_timer(timer);
 
-    /* If this is the new head of the list, we need to re-configure the HW timer/counter */
+    /* If this is the new head of the list, we need to re-configure the hardware timer/counter */
     if ((timer == _active_timers_head) && !_isr_running)
     {
         if (!only_timer)
