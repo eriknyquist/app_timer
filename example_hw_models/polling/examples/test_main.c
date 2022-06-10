@@ -24,15 +24,15 @@
 
 // If set to 1, extra information is printed about each timer instance at the end of the test
 #ifndef VERBOSE
-#define VERBOSE (0u)
+#define VERBOSE (1u)
 #endif // VERBOSE
 
 
-#define TOTAL_TEST_TIME_SECONDS (5u * 60u) ///< Total runtime for all timers, seconds
+#define TOTAL_TEST_TIME_SECONDS (10u * 60u) ///< Total runtime for all timers, seconds
 #define TIME_LOG_INTERVAL_SECS  (300u)       ///< How often to log runtime remaining, seconds
 
-#define NUM_SINGLE_TIMERS (512u)             ///< Number of single-shot timers to create (re-started in timer callback)
-#define NUM_REPEAT_TIMERS (512u)             ///< Number of repeating timers to create
+#define NUM_SINGLE_TIMERS (128u)             ///< Number of single-shot timers to create (re-started in timer callback)
+#define NUM_REPEAT_TIMERS (128u)             ///< Number of repeating timers to create
 #define NUM_TEST_TIMERS \
     (NUM_SINGLE_TIMERS + NUM_REPEAT_TIMERS)  ///< Total number of timers
 
@@ -412,6 +412,7 @@ int main(int argc, char *argv[])
         }
     }
 
+    polling_app_timer_poll();
     polling_app_timer_poll();
 
     _log("test complete, stopping all timers...\n");
