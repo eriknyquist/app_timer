@@ -24,7 +24,7 @@
 
 // If set to 1, extra information is printed about each timer instance at the end of the test
 #ifndef VERBOSE
-#define VERBOSE (1u)
+#define VERBOSE (0u)
 #endif // VERBOSE
 
 
@@ -89,6 +89,44 @@ typedef struct
 static test_timer_t _test_timers[NUM_TEST_TIMERS] = {0};
 
 uint64_t _start_us = 0u;
+
+
+#define NUMSUFFIXES (7)
+
+static const char *size_suffixes[NUMSUFFIXES] =
+{
+    "EB", "PB", "TB", "GB", "MB", "KB", "B"
+};
+
+#define EXABYTES                (1024ULL * 1024ULL * 1024ULL * 1024ULL * \
+                                 1024ULL * 1024ULL)
+
+int sizesprint(size_t size, char *buf, unsigned int bufsize)
+{
+    int ret = 0;
+    uint64_t mult = EXABYTES;
+
+    for (int i = 0; i < NUMSUFFIXES; i++, mult /= 1024ULL)
+    {
+        if (size < mult)
+        {
+            continue;
+        }
+
+        if (mult && (size % mult) == 0)
+        {
+            ret = snprintf(buf, bufsize, "%"PRIu64"%s", size / mult, size_suffixes[i]);
+        }
+        else
+        {
+            ret = snprintf(buf, bufsize, "%.2f%s", (float) size / mult, size_suffixes[i]);
+        }
+
+        break;
+    }
+
+    return ret;
+}
 
 
 static void _log(const char *fmt, ...)
@@ -379,7 +417,9 @@ int main(int argc, char *argv[])
 
     _log("initializing %u single-shot timers & %u repeating timers, with periods from %u-%ums\n",
          NUM_SINGLE_TIMERS, NUM_REPEAT_TIMERS, lowest_period_ms, highest_period_ms);
-    _log("%zu bytes of memory used\n", sizeof(_test_timers));
+    char sizestrbuf[32];
+    (void) sizesprint(sizeof(_test_timers), sizestrbuf, sizeof(sizestrbuf));
+    _log("%s of memory used\n", sizestrbuf);
     _log("running %u timers for %u seconds...\n", NUM_TEST_TIMERS, TOTAL_TEST_TIME_SECONDS);
 
     uint64_t start_us = timing_usecs_elapsed();
