@@ -148,10 +148,11 @@ typedef void (*app_timer_handler_t)(void *);
  */
 typedef enum
 {
-    APP_TIMER_OK,
-    APP_TIMER_INVALID_PARAM,
-    APP_TIMER_INVALID_STATE,
-    APP_TIMER_ERROR
+    APP_TIMER_OK,                   ///< Operation successful
+    APP_TIMER_NULL_PARAM,           ///< NULL pointer passed as parameter
+    APP_TIMER_INVALID_PARAM,        ///< Invalid data passed as parameter
+    APP_TIMER_INVALID_STATE,        ///< Operation not allowed in current state (has app_timer_init been called?)
+    APP_TIMER_ERROR                 ///< Unspecified internal error
 } app_timer_error_e;
 
 

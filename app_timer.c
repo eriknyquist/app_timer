@@ -559,7 +559,7 @@ app_timer_error_e app_timer_init(app_timer_hw_model_t *model)
 
     if (NULL == model)
     {
-        return APP_TIMER_INVALID_PARAM;
+        return APP_TIMER_NULL_PARAM;
     }
 
     if ((0u == model->max_count) ||
