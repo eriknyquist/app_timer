@@ -210,6 +210,14 @@ void test_app_timer_stop_not_init(void)
     TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_STATE, app_timer_stop(&t));
 }
 
+// Tests that app_timer_is_active returns expected error code when module is not initialized
+void test_app_timer_is_active_not_init(void)
+{
+    app_timer_t t;
+    bool active;
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_STATE, app_timer_is_active(&t, &active));
+}
+
 // Tests that app_timer_init returns expected error when NULL HW model is passed
 void test_app_timer_init_null_hwmodel_ptr(void)
 {
@@ -293,7 +301,7 @@ void test_app_timer_init_hwmodel_init_fail(void)
     _callcount_init_returnval = true;
 }
 
-
+// Tests that app_timer_init succeeds in the happy path
 void test_app_timer_init_success(void)
 {
     void *old_set_timer_running = _hw_model.set_timer_running;
@@ -312,7 +320,109 @@ void test_app_timer_init_success(void)
     _hw_model.set_interrupts_enabled = old_set_interrupts_enabled;
 }
 
+// Tests that app_timer_create returns expected error code when NULL timer is passed
+void test_app_timer_create_null_timer(void)
+{
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_NULL_PARAM, app_timer_create(NULL, _dummy_handler, APP_TIMER_TYPE_REPEATING));
+}
 
+// Tests that app_timer_create returns expected error code when invalid type is passed
+void test_app_timer_create_invalid_type(void)
+{
+    app_timer_t t;
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_PARAM, app_timer_create(&t, _dummy_handler, APP_TIMER_TYPE_COUNT));
+}
+
+// Tests that app_timer_create succeeds in the happy path (repeating timer)
+void test_app_timer_create_success_repeating(void)
+{
+    app_timer_t t;
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t, _dummy_handler, APP_TIMER_TYPE_REPEATING));
+
+    TEST_ASSERT_EQUAL_PTR(_dummy_handler, t.handler);
+    TEST_ASSERT_EQUAL_INT(0, t.start_counts);
+    TEST_ASSERT_EQUAL_INT(0, t.total_counts);
+    TEST_ASSERT_EQUAL_PTR(NULL, t.next);
+    TEST_ASSERT_EQUAL_PTR(NULL, t.previous);
+    TEST_ASSERT_EQUAL_INT(2, t.flags);
+}
+
+// Tests that app_timer_create succeeds in the happy path (single-shot timer)
+void test_app_timer_create_success_single_shot(void)
+{
+    app_timer_t t;
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t, _dummy_handler, APP_TIMER_TYPE_SINGLE_SHOT));
+
+    TEST_ASSERT_EQUAL_PTR(_dummy_handler, t.handler);
+    TEST_ASSERT_EQUAL_INT(0, t.start_counts);
+    TEST_ASSERT_EQUAL_INT(0, t.total_counts);
+    TEST_ASSERT_EQUAL_PTR(NULL, t.next);
+    TEST_ASSERT_EQUAL_PTR(NULL, t.previous);
+    TEST_ASSERT_EQUAL_INT(0, t.flags);
+}
+
+// Tests that app_timer_is_active returns expected error code when NULL pointer given for timer
+void test_app_timer_is_active_null_timer(void)
+{
+    bool active;
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_NULL_PARAM, app_timer_is_active(NULL, &active));
+}
+
+// Tests that app_timer_is_active returns expected error code when NULL pointer given for result
+void test_app_timer_is_active_null_result(void)
+{
+    app_timer_t t;
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_NULL_PARAM, app_timer_is_active(&t, NULL));
+}
+
+// Tests that app_timer_is_active behaves as expected, before and after starting & stopping
+// a timer instance
+void test_app_timer_is_active_repeating_success(void)
+{
+    app_timer_t t;
+
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t, _dummy_handler, APP_TIMER_TYPE_REPEATING));
+
+    // verify timer is not active yet
+    bool active;
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t, &active));
+    TEST_ASSERT_FALSE(active);
+
+    // start timer
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_start(&t, 1000u, NULL));
+
+    // timer should be active now
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t, &active));
+    TEST_ASSERT_TRUE(active);
+
+    // stop timer
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&t));
+
+    // timer should be inactive again now
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t, &active));
+    TEST_ASSERT_FALSE(active);
+}
+
+// Tests that app_timer_start returns expected error code when NULL pointer passed for timer
+void test_app_timer_start_null_timer(void)
+{
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_NULL_PARAM, app_timer_start(NULL, 10u, NULL));
+}
+
+// Tests that app_timer_start returns expected error code when invalid time provided
+void test_app_timer_start_invalid_time(void)
+{
+    app_timer_t t;
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t, _dummy_handler, APP_TIMER_TYPE_REPEATING));
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_PARAM, app_timer_start(&t, 0u, NULL));
+
+    // verify timer is not active yet
+    bool active;
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t, &active));
+    TEST_ASSERT_FALSE(active);
+}
+
+// tests that app_timer_start
 int main(void)
 {
     UNITY_BEGIN();
@@ -321,6 +431,7 @@ int main(void)
     RUN_TEST(test_app_timer_create_not_init);
     RUN_TEST(test_app_timer_start_not_init);
     RUN_TEST(test_app_timer_stop_not_init);
+    RUN_TEST(test_app_timer_is_active_not_init);
 
     // Tests for app_timer_init
     RUN_TEST(test_app_timer_init_null_hwmodel_ptr);
@@ -333,6 +444,21 @@ int main(void)
     RUN_TEST(test_app_timer_init_null_set_interrupts_enabled);
     RUN_TEST(test_app_timer_init_hwmodel_init_fail);
     RUN_TEST(test_app_timer_init_success);
+
+    // Tests for app_timer_create
+    RUN_TEST(test_app_timer_create_null_timer);
+    RUN_TEST(test_app_timer_create_invalid_type);
+    RUN_TEST(test_app_timer_create_success_repeating);
+    RUN_TEST(test_app_timer_create_success_single_shot);
+
+    // Tests for app_timer_is_active
+    RUN_TEST(test_app_timer_is_active_null_timer);
+    RUN_TEST(test_app_timer_is_active_null_result);
+    RUN_TEST(test_app_timer_is_active_repeating_success);
+
+    // Tests for app_timer_start and app_timer_is_valid
+    RUN_TEST(test_app_timer_start_null_timer);
+    RUN_TEST(test_app_timer_start_invalid_time);
 
     return UNITY_END();
 }

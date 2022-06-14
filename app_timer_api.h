@@ -162,7 +162,8 @@ typedef enum
 typedef enum
 {
     APP_TIMER_TYPE_SINGLE_SHOT,   ///< Timer expires once, no reloading
-    APP_TIMER_TYPE_REPEATING      ///< Continue reloading the timer on expiry, until stopped
+    APP_TIMER_TYPE_REPEATING,     ///< Continue reloading the timer on expiry, until stopped
+    APP_TIMER_TYPE_COUNT
 } app_timer_type_e;
 
 
@@ -319,6 +320,25 @@ app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_fr
  * @return #APP_TIMER_OK if successful
  */
 app_timer_error_e app_timer_stop(app_timer_t *timer);
+
+
+/**
+ * Checks whether a timer instance is active. This has different meanings depending
+ * on the timer type;
+ *
+ * - APP_TIMER_TYPE_SINGLE_SHOT: The timer is active if it has been started by
+ *   app_timer_start and not yet expired
+ *
+ * - APP_TIMER_TYPE_REPEATING: The timer is active if it has been started by
+ *   app_timer_start and not yet stopped by app_timer_stop
+ *
+ * @param timer      Pointer to timer instance to check if active
+ * @param is_active  Pointer to location to store result of active check
+ *                   (true = active, false = not active)
+ *
+ * @return #APP_TIMER_OK if successful
+ */
+app_timer_error_e app_timer_is_active(app_timer_t *timer, bool *is_active);
 
 
 /**

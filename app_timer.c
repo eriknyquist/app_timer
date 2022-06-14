@@ -236,7 +236,6 @@ static void _remove_active_timer(app_timer_t *timer)
 
     timer->next = NULL;
     timer->previous = NULL;
-    timer->flags &= ~FLAGS_ACTIVE_BIT;
 }
 
 
@@ -285,6 +284,14 @@ static void _remove_expired_timers(app_timer_running_count_t now)
     {
         // Unlink timer from active list
         _remove_active_timer(head);
+
+        app_timer_type_e type = (app_timer_type_e) ((head->flags & FLAGS_TYPE_MASK) >> FLAGS_TYPE_POS);
+        if (APP_TIMER_TYPE_REPEATING != type)
+        {
+            /* Clear active flag, unless timer type is repeating. Repeating timers,
+             * once started, only become inactive when stopped by app_timer_stop. */
+            head->flags &= ~FLAGS_ACTIVE_BIT;
+        }
 
         // Add timer to the expired list
         if (NULL == _expired_timers_head)
@@ -410,7 +417,7 @@ void app_timer_target_count_reached(void)
 
 
 /**
- * @see timer_api.h
+ * @see app_timer_api.h
  */
 app_timer_error_e app_timer_create(app_timer_t *timer, app_timer_handler_t handler, app_timer_type_e type)
 {
@@ -420,6 +427,11 @@ app_timer_error_e app_timer_create(app_timer_t *timer, app_timer_handler_t handl
     }
 
     if (NULL == timer)
+    {
+        return APP_TIMER_NULL_PARAM;
+    }
+
+    if (APP_TIMER_TYPE_COUNT <= type)
     {
         return APP_TIMER_INVALID_PARAM;
     }
@@ -436,7 +448,7 @@ app_timer_error_e app_timer_create(app_timer_t *timer, app_timer_handler_t handl
 
 
 /**
- * @see timer_api.h
+ * @see app_timer_api.h
  */
 app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_from_now, void *context)
 {
@@ -446,6 +458,11 @@ app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_fr
     }
 
     if (NULL == timer)
+    {
+        return APP_TIMER_NULL_PARAM;
+    }
+
+    if (0u == time_from_now)
     {
         return APP_TIMER_INVALID_PARAM;
     }
@@ -513,7 +530,7 @@ app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_fr
 
 
 /**
- * @see timer_api.h
+ * @see app_timer_api.h
  */
 app_timer_error_e app_timer_stop(app_timer_t *timer)
 {
@@ -533,6 +550,7 @@ app_timer_error_e app_timer_stop(app_timer_t *timer)
     _hw_model->set_interrupts_enabled(false, &int_status);
 
     _remove_active_timer(timer);
+    timer->flags &= ~FLAGS_ACTIVE_BIT;
 
     if (NULL == _active_timers_head)
     {
@@ -547,7 +565,29 @@ app_timer_error_e app_timer_stop(app_timer_t *timer)
 
 
 /**
- * @see timer_api.h
+ * @see app_timer_api.h
+ */
+app_timer_error_e app_timer_is_active(app_timer_t *timer, bool *is_active)
+{
+    if (!_initialized)
+    {
+        // Already initialized
+        return APP_TIMER_INVALID_STATE;
+    }
+
+    if ((NULL == timer) || (NULL == is_active))
+    {
+        return APP_TIMER_NULL_PARAM;
+    }
+
+    *is_active = ((timer->flags & FLAGS_ACTIVE_BIT) > 0u);
+
+    return APP_TIMER_OK;
+}
+
+
+/**
+ * @see app_timer_api.h
  */
 app_timer_error_e app_timer_init(app_timer_hw_model_t *model)
 {
