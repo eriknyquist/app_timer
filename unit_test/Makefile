@@ -25,6 +25,7 @@ TEST_PROG := $(OUTPUT_DIR)/test_app_timer
 
 SRC_FILES := ../app_timer.c test_app_timer.c unity/src/unity.c
 INCLUDES := -Iunity/src -I../
+CFLAGS := -Wall -std=c99
 
 .PHONY: clean test
 
@@ -35,7 +36,7 @@ all: clean test
 test: $(TEST_PROG)
 
 $(TEST_PROG): $(OUTPUT_DIR)
-	$(GCC) $(SRC_FILES) $(INCLUDES) -o $(TEST_PROG)
+	$(GCC) $(CFLAGS) $(SRC_FILES) $(INCLUDES) -o $(TEST_PROG)
 	./$(TEST_PROG)
 
 $(OUTPUT_DIR):

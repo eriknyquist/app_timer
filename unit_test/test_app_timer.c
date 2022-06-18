@@ -301,12 +301,14 @@ static void _dummy_handler(void *context)
     ; // Do nothing
 }
 
+
 // Tests that app_timer_create returns expected error code when module is not initialized
 void test_app_timer_create_not_init(void)
 {
     app_timer_t t;
     TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_STATE, app_timer_create(&t, _dummy_handler, APP_TIMER_TYPE_REPEATING));
 }
+
 
 // Tests that app_timer_start returns expected error code when module is not initialized
 void test_app_timer_start_not_init(void)
@@ -315,12 +317,14 @@ void test_app_timer_start_not_init(void)
     TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_STATE, app_timer_start(&t, 1000u, NULL));
 }
 
+
 // Tests that app_timer_stop returns expected error code when module is not initialized
 void test_app_timer_stop_not_init(void)
 {
     app_timer_t t;
     TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_STATE, app_timer_stop(&t));
 }
+
 
 // Tests that app_timer_is_active returns expected error code when module is not initialized
 void test_app_timer_is_active_not_init(void)
@@ -330,11 +334,13 @@ void test_app_timer_is_active_not_init(void)
     TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_STATE, app_timer_is_active(&t, &active));
 }
 
+
 // Tests that app_timer_init returns expected error when NULL HW model is passed
 void test_app_timer_init_null_hwmodel_ptr(void)
 {
     TEST_ASSERT_EQUAL_INT(APP_TIMER_NULL_PARAM, app_timer_init(NULL));
 }
+
 
 // Tests that app_timer_init returns expected error when HW model contains
 // invalid value for 'max_count' field
@@ -344,6 +350,7 @@ void test_app_timer_init_max_count_invalid(void)
     TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_PARAM, app_timer_init(&_hw_model));
     _hw_model.max_count = 0xffffu; // Restore valid max_count
 }
+
 
 // Tests that app_timer_init returns expected error code when HW model contains
 // NULL pointer for 'init' function
@@ -355,6 +362,7 @@ void test_app_timer_init_null_init(void)
     _hw_model.init = old_val; // Restore valid value
 }
 
+
 // Tests that app_timer_init returns expected error code when HW model contains
 // NULL pointer for 'units_to_timer_counts' function
 void test_app_timer_init_null_units_to_timer_counts(void)
@@ -364,6 +372,7 @@ void test_app_timer_init_null_units_to_timer_counts(void)
     TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_PARAM, app_timer_init(&_hw_model));
     _hw_model.units_to_timer_counts = old_val; // Restore valid value
 }
+
 
 // Tests that app_timer_init returns expected error code when HW model contains
 // NULL pointer for 'read_timer_counts' function
@@ -375,6 +384,7 @@ void test_app_timer_init_null_read_timer_counts(void)
     _hw_model.read_timer_counts = old_val; // Restore valid value
 }
 
+
 // Tests that app_timer_init returns expected error code when HW model contains
 // NULL pointer for 'set_timer_period_counts' function
 void test_app_timer_init_null_set_timer_period_counts(void)
@@ -384,6 +394,7 @@ void test_app_timer_init_null_set_timer_period_counts(void)
     TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_PARAM, app_timer_init(&_hw_model));
     _hw_model.set_timer_period_counts = old_val; // Restore valid value
 }
+
 
 // Tests that app_timer_init returns expected error code when HW model contains
 // NULL pointer for 'set_timer_running' function
@@ -395,6 +406,7 @@ void test_app_timer_init_null_set_timer_running(void)
     _hw_model.set_timer_running = old_val; // Restore valid value
 }
 
+
 // Tests that app_timer_init returns expected error code when HW model contains
 // NULL pointer for 'set_interrupts_enabled' function
 void test_app_timer_init_null_set_interrupts_enabled(void)
@@ -405,6 +417,7 @@ void test_app_timer_init_null_set_interrupts_enabled(void)
     _hw_model.set_interrupts_enabled = old_val; // Restore valid value
 }
 
+
 // Tests that app_timer_init returns expected error when HW model init. function fails
 void test_app_timer_init_hwmodel_init_fail(void)
 {
@@ -412,6 +425,7 @@ void test_app_timer_init_hwmodel_init_fail(void)
     TEST_ASSERT_EQUAL_INT(APP_TIMER_ERROR, app_timer_init(&_hw_model));
     _callcount_init_returnval = true;
 }
+
 
 // Tests that app_timer_init succeeds in the happy path
 void test_app_timer_init_success(void)
@@ -432,11 +446,13 @@ void test_app_timer_init_success(void)
     _hw_model.set_interrupts_enabled = old_set_interrupts_enabled;
 }
 
+
 // Tests that app_timer_create returns expected error code when NULL timer is passed
 void test_app_timer_create_null_timer(void)
 {
     TEST_ASSERT_EQUAL_INT(APP_TIMER_NULL_PARAM, app_timer_create(NULL, _dummy_handler, APP_TIMER_TYPE_REPEATING));
 }
+
 
 // Tests that app_timer_create returns expected error code when invalid type is passed
 void test_app_timer_create_invalid_type(void)
@@ -444,6 +460,7 @@ void test_app_timer_create_invalid_type(void)
     app_timer_t t;
     TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_PARAM, app_timer_create(&t, _dummy_handler, APP_TIMER_TYPE_COUNT));
 }
+
 
 // Tests that app_timer_create succeeds in the happy path (repeating timer)
 void test_app_timer_create_success_repeating(void)
@@ -459,6 +476,7 @@ void test_app_timer_create_success_repeating(void)
     TEST_ASSERT_EQUAL_INT(2, t.flags);
 }
 
+
 // Tests that app_timer_create succeeds in the happy path (single-shot timer)
 void test_app_timer_create_success_single_shot(void)
 {
@@ -473,6 +491,7 @@ void test_app_timer_create_success_single_shot(void)
     TEST_ASSERT_EQUAL_INT(0, t.flags);
 }
 
+
 // Tests that app_timer_is_active returns expected error code when NULL pointer given for timer
 void test_app_timer_is_active_null_timer(void)
 {
@@ -480,12 +499,14 @@ void test_app_timer_is_active_null_timer(void)
     TEST_ASSERT_EQUAL_INT(APP_TIMER_NULL_PARAM, app_timer_is_active(NULL, &active));
 }
 
+
 // Tests that app_timer_is_active returns expected error code when NULL pointer given for result
 void test_app_timer_is_active_null_result(void)
 {
     app_timer_t t;
     TEST_ASSERT_EQUAL_INT(APP_TIMER_NULL_PARAM, app_timer_is_active(&t, NULL));
 }
+
 
 // Tests that app_timer_is_active behaves as expected, before and after starting & stopping
 // a timer instance
@@ -515,11 +536,13 @@ void test_app_timer_is_active_repeating_success(void)
     TEST_ASSERT_FALSE(active);
 }
 
+
 // Tests that app_timer_start returns expected error code when NULL pointer passed for timer
 void test_app_timer_start_null_timer(void)
 {
     TEST_ASSERT_EQUAL_INT(APP_TIMER_NULL_PARAM, app_timer_start(NULL, 10u, NULL));
 }
+
 
 // Tests that app_timer_start returns expected error code when invalid time provided
 void test_app_timer_start_invalid_time(void)
@@ -528,11 +551,13 @@ void test_app_timer_start_invalid_time(void)
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t, _dummy_handler, APP_TIMER_TYPE_REPEATING));
     TEST_ASSERT_EQUAL_INT(APP_TIMER_INVALID_PARAM, app_timer_start(&t, 0u, NULL));
 
+
     // verify timer is not active yet
     bool active;
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t, &active));
     TEST_ASSERT_FALSE(active);
 }
+
 
 // Tests that app_timer_start doesn't do anything if the timer is already active
 void test_app_timer_start_already_started(void)
@@ -651,6 +676,7 @@ void test_app_timer_start_success_period_gt_maxcount(void)
     _hw_model.max_count = old_max_count;
 }
 
+
 // Tests that app_timer_start does not configure the HW timer if it is already running
 // set to expire before the new timer period
 void test_app_timer_start_success_hwcounter_already_running(void)
@@ -730,6 +756,7 @@ void test_app_timer_start_success_hwcounter_already_running(void)
     _hw_model.set_interrupts_enabled = old_set_interrupts_enabled;
     _hw_model.set_timer_period_counts = old_set_timer_period_counts;
     _hw_model.units_to_timer_counts = old_units_to_timer_counts;
+    _hw_model.max_count = old_max_count;
 }
 
 
@@ -766,7 +793,7 @@ int main(void)
     RUN_TEST(test_app_timer_is_active_null_result);
     RUN_TEST(test_app_timer_is_active_repeating_success);
 
-    // Tests for app_timer_start and app_timer_is_valid
+    // Tests for app_timer_start and app_timer_is_active
     RUN_TEST(test_app_timer_start_null_timer);
     RUN_TEST(test_app_timer_start_invalid_time);
     RUN_TEST(test_app_timer_start_already_started);
