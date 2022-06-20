@@ -195,6 +195,36 @@ static void _set_timer_period_counts_expect(app_timer_count_t counts)
 }
 
 
+// Mock read_timer_counts functions + stack for call arguments
+
+typedef struct
+{
+    uint32_t count;
+    uint32_t pos;
+} read_timer_counts_stack_t;
+
+static app_timer_count_t _read_timer_counts_retval = 0u;
+
+static read_timer_counts_stack_t _read_timer_counts_stack = {.count=0u, .pos=0u};
+
+static app_timer_count_t _mock_read_timer_counts(void)
+{
+    if (_read_timer_counts_stack.pos >= _read_timer_counts_stack.count)
+    {
+        TEST_FAIL_MESSAGE("hw_model->read_timer_counts was called more times than expected");
+        return 0u;
+    }
+
+    _read_timer_counts_stack.pos += 1u;
+    return _read_timer_counts_retval;
+}
+
+static void _read_timer_counts_expect(void)
+{
+    _read_timer_counts_stack.count += 1u;
+}
+
+
 // Mock units_to_timer_counts functions + stack for call arguments
 
 typedef struct
@@ -262,6 +292,9 @@ void setUp(void)
 
     _units_to_timer_counts_stack.pos = 0u;
     _units_to_timer_counts_stack.count = 0u;
+
+    _read_timer_counts_stack.pos = 0u;
+    _read_timer_counts_stack.count = 0u;
 }
 
 
@@ -285,6 +318,11 @@ void checkExpectedCalls(void)
     if (_units_to_timer_counts_stack.pos != _units_to_timer_counts_stack.count)
     {
         TEST_FAIL_MESSAGE("hw_model->units_to_timer_counts called fewer times than expected");
+    }
+
+    if (_read_timer_counts_stack.pos != _read_timer_counts_stack.count)
+    {
+        TEST_FAIL_MESSAGE("hw_model->read_timer_counts called fewer times than expected");
     }
 }
 
@@ -570,16 +608,19 @@ void test_app_timer_start_already_started(void)
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t, &active));
     TEST_ASSERT_FALSE(active);
 
+    void *old_read_timer_counts = _hw_model.read_timer_counts;
     void *old_set_timer_running = _hw_model.set_timer_running;
     void *old_set_interrupts_enabled = _hw_model.set_interrupts_enabled;
     void *old_set_timer_period_counts = _hw_model.set_timer_period_counts;
     void *old_units_to_timer_counts = _hw_model.units_to_timer_counts;
 
+    _hw_model.read_timer_counts = _mock_read_timer_counts;
     _hw_model.set_timer_running = _mock_set_timer_running;
     _hw_model.set_timer_period_counts = _mock_set_timer_period_counts;
     _hw_model.set_interrupts_enabled = _mock_set_interrupts_enabled;
     _hw_model.units_to_timer_counts = _mock_units_to_timer_counts;
 
+    _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _set_timer_running_expect(false);
     _units_to_timer_counts_expect(1000u);
@@ -613,6 +654,7 @@ void test_app_timer_start_already_started(void)
     TEST_ASSERT_FALSE(active);
 
     // Restore valid values
+    _hw_model.read_timer_counts = old_read_timer_counts;
     _hw_model.set_timer_running = old_set_timer_running;
     _hw_model.set_interrupts_enabled = old_set_interrupts_enabled;
     _hw_model.set_timer_period_counts = old_set_timer_period_counts;
@@ -631,18 +673,21 @@ void test_app_timer_start_success_period_gt_maxcount(void)
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t, &active));
     TEST_ASSERT_FALSE(active);
 
+    void *old_read_timer_counts = _hw_model.read_timer_counts;
     void *old_set_timer_running = _hw_model.set_timer_running;
     void *old_set_interrupts_enabled = _hw_model.set_interrupts_enabled;
     void *old_set_timer_period_counts = _hw_model.set_timer_period_counts;
     void *old_units_to_timer_counts = _hw_model.units_to_timer_counts;
     app_timer_count_t old_max_count = _hw_model.max_count;
 
+    _hw_model.read_timer_counts = _mock_read_timer_counts;
     _hw_model.set_timer_running = _mock_set_timer_running;
     _hw_model.set_timer_period_counts = _mock_set_timer_period_counts;
     _hw_model.set_interrupts_enabled = _mock_set_interrupts_enabled;
     _hw_model.units_to_timer_counts = _mock_units_to_timer_counts;
     _hw_model.max_count = 7676;
 
+    _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _set_timer_running_expect(false);
     _units_to_timer_counts_expect(1000u);
@@ -669,6 +714,7 @@ void test_app_timer_start_success_period_gt_maxcount(void)
     TEST_ASSERT_FALSE(active);
 
     // Restore valid values
+    _hw_model.read_timer_counts = old_read_timer_counts;
     _hw_model.set_timer_running = old_set_timer_running;
     _hw_model.set_interrupts_enabled = old_set_interrupts_enabled;
     _hw_model.set_timer_period_counts = old_set_timer_period_counts;
@@ -692,18 +738,21 @@ void test_app_timer_start_success_hwcounter_already_running(void)
     TEST_ASSERT_FALSE(active1);
     TEST_ASSERT_FALSE(active2);
 
+    void *old_read_timer_counts = _hw_model.read_timer_counts;
     void *old_set_timer_running = _hw_model.set_timer_running;
     void *old_set_interrupts_enabled = _hw_model.set_interrupts_enabled;
     void *old_set_timer_period_counts = _hw_model.set_timer_period_counts;
     void *old_units_to_timer_counts = _hw_model.units_to_timer_counts;
     app_timer_count_t old_max_count = _hw_model.max_count;
 
+    _hw_model.read_timer_counts = _mock_read_timer_counts;
     _hw_model.set_timer_running = _mock_set_timer_running;
     _hw_model.set_timer_period_counts = _mock_set_timer_period_counts;
     _hw_model.set_interrupts_enabled = _mock_set_interrupts_enabled;
     _hw_model.units_to_timer_counts = _mock_units_to_timer_counts;
 
     _set_interrupts_enabled_expect(false);
+    _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _units_to_timer_counts_expect(1000u);
     _units_to_timer_counts_retval = 1234;
@@ -720,6 +769,7 @@ void test_app_timer_start_success_hwcounter_already_running(void)
     TEST_ASSERT_TRUE(active1);
     TEST_ASSERT_FALSE(active2);
 
+    _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _units_to_timer_counts_expect(2000u);
     _units_to_timer_counts_retval = 1234;
@@ -752,11 +802,162 @@ void test_app_timer_start_success_hwcounter_already_running(void)
     TEST_ASSERT_FALSE(active2);
 
     // Restore valid values
+    _hw_model.read_timer_counts = old_read_timer_counts;
     _hw_model.set_timer_running = old_set_timer_running;
     _hw_model.set_interrupts_enabled = old_set_interrupts_enabled;
     _hw_model.set_timer_period_counts = old_set_timer_period_counts;
     _hw_model.units_to_timer_counts = old_units_to_timer_counts;
     _hw_model.max_count = old_max_count;
+}
+
+static bool _t1_callback_called = false;
+static bool _t2_callback_called = false;
+static bool _t3_callback_called = false;
+
+static void _t1_callback(void *context)
+{
+    _t1_callback_called = true;
+}
+
+static void _t2_callback(void *context)
+{
+    _t2_callback_called = true;
+}
+
+static void _t3_callback(void *context)
+{
+    _t3_callback_called = true;
+}
+
+// Tests that app_timer_target_count_reached runs timer callbacks at the expected
+// time when  3 timer instances are running
+void test_app_timer_target_count_reached_multiple_singleshot_diff_expiries(void)
+{
+    app_timer_t t1, t2, t3;
+
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t1, _t1_callback, APP_TIMER_TYPE_SINGLE_SHOT));
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t2, _t2_callback, APP_TIMER_TYPE_SINGLE_SHOT));
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t3, _t3_callback, APP_TIMER_TYPE_SINGLE_SHOT));
+
+    void *old_read_timer_counts = _hw_model.read_timer_counts;
+    void *old_set_timer_running = _hw_model.set_timer_running;
+    void *old_set_interrupts_enabled = _hw_model.set_interrupts_enabled;
+    void *old_set_timer_period_counts = _hw_model.set_timer_period_counts;
+    void *old_units_to_timer_counts = _hw_model.units_to_timer_counts;
+
+    _hw_model.read_timer_counts = _mock_read_timer_counts;
+    _hw_model.set_timer_running = _mock_set_timer_running;
+    _hw_model.set_timer_period_counts = _mock_set_timer_period_counts;
+    _hw_model.set_interrupts_enabled = _mock_set_interrupts_enabled;
+    _hw_model.units_to_timer_counts = _mock_units_to_timer_counts;
+
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _units_to_timer_counts_expect(1000u);
+    _units_to_timer_counts_retval = 1000u;
+    _set_timer_period_counts_expect(1000u);
+    _set_timer_running_expect(true);
+    _set_interrupts_enabled_expect(true);
+
+    // Starting timer1
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_start(&t1, 1000u, NULL));
+
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(false);
+    _units_to_timer_counts_expect(1200u);
+    _units_to_timer_counts_retval = 1200;
+    _set_interrupts_enabled_expect(true);
+
+    // Starting timer2
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_start(&t2, 1200u, NULL));
+
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(false);
+    _units_to_timer_counts_expect(1300u);
+    _units_to_timer_counts_retval = 1300;
+    _set_interrupts_enabled_expect(true);
+
+    // Starting timer3
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_start(&t3, 1300u, NULL));
+
+    // Verify no callbacks have run yet
+    TEST_ASSERT_FALSE(_t1_callback_called);
+    TEST_ASSERT_FALSE(_t2_callback_called);
+    TEST_ASSERT_FALSE(_t3_callback_called);
+
+    // Expectations for first app_timer_target_count_reached call
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(_hw_model.max_count);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(true);
+
+    _set_interrupts_enabled_expect(false);
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(200u);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(true);
+
+    app_timer_target_count_reached();
+
+    // Verify only t1 callback was run
+    TEST_ASSERT_TRUE(_t1_callback_called);
+    TEST_ASSERT_FALSE(_t2_callback_called);
+    TEST_ASSERT_FALSE(_t3_callback_called);
+
+    // Expectations for second app_timer_target_count_reached call
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(_hw_model.max_count);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(true);
+
+    _set_interrupts_enabled_expect(false);
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(100u);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(true);
+
+    app_timer_target_count_reached();
+
+    // Verify t1 and t2 callbacks have run
+    TEST_ASSERT_TRUE(_t1_callback_called);
+    TEST_ASSERT_TRUE(_t2_callback_called);
+    TEST_ASSERT_FALSE(_t3_callback_called);
+
+    // Expectations for third app_timer_target_count_reached call
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(_hw_model.max_count);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(true);
+
+    _set_interrupts_enabled_expect(false);
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_interrupts_enabled_expect(true);
+
+    app_timer_target_count_reached();
+
+    // Verify t1 and t2 callbacks have run
+    TEST_ASSERT_TRUE(_t1_callback_called);
+    TEST_ASSERT_TRUE(_t2_callback_called);
+    TEST_ASSERT_TRUE(_t3_callback_called);
+
+    // Restore valid values
+    _hw_model.read_timer_counts = old_read_timer_counts;
+    _hw_model.set_timer_running = old_set_timer_running;
+    _hw_model.set_interrupts_enabled = old_set_interrupts_enabled;
+    _hw_model.set_timer_period_counts = old_set_timer_period_counts;
+    _hw_model.units_to_timer_counts = old_units_to_timer_counts;
 }
 
 
@@ -799,6 +1000,9 @@ int main(void)
     RUN_TEST(test_app_timer_start_already_started);
     RUN_TEST(test_app_timer_start_success_period_gt_maxcount);
     RUN_TEST(test_app_timer_start_success_hwcounter_already_running);
+
+    // Tests for app_timer_start and app_timer_target_count_reached
+    RUN_TEST(test_app_timer_target_count_reached_multiple_singleshot_diff_expiries);
 
     return UNITY_END();
 }
