@@ -511,7 +511,7 @@ void test_app_timer_create_success_repeating(void)
     TEST_ASSERT_EQUAL_INT(0, t.total_counts);
     TEST_ASSERT_EQUAL_PTR(NULL, t.next);
     TEST_ASSERT_EQUAL_PTR(NULL, t.previous);
-    TEST_ASSERT_EQUAL_INT(2, t.flags);
+    TEST_ASSERT_EQUAL_INT(4, t.flags);
 }
 
 

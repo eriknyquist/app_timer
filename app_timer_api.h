@@ -182,9 +182,10 @@ typedef struct _app_timer_t
     /**
      * Bit flags for timer
      *
-     * Bit 0     : timer active. 1 when timer is active, 0 otherwise.
-     * Bits 1-2  : timer type, one of app_timer_type_e
-     * Bits 3-7  : unused
+     * Bit 0     : timer active. 1 when timer is in active list, 0 otherwise.
+     * Bit 1     : timer pending. 1 when timer is in expired list, 0 otherwise.
+     * Bits 2-3  : timer type, one of app_timer_type_e
+     * Bits 4-7  : unused
      */
     volatile uint8_t flags;
 } app_timer_t;

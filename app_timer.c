@@ -33,16 +33,21 @@ extern "C" {
 
 
 /**
- * Bit mask and bit position for active flag
+ * Bit mask for active flag (waiting for timer expiration)
  */
 #define FLAGS_ACTIVE_BIT (0x1u)
+
+/**
+ * Bit mask for pending flag (timer has expired but handler has not yet been executed)
+ */
+#define FLAGS_PENDING_BIT (0x2u)
 
 
 /**
  * Bit mask and bit position for timer type
  */
 #define FLAGS_TYPE_MASK (0x6u)
-#define FLAGS_TYPE_POS  (0x1u)
+#define FLAGS_TYPE_POS  (0x2u)
 
 
 /**
@@ -218,6 +223,8 @@ static void _insert_active_timer(app_timer_t *timer)
  */
 static void _remove_active_timer(app_timer_t *timer)
 {
+    timer->flags &= ~FLAGS_ACTIVE_BIT;
+
     if (_active_timers_head == timer)
     {
         // Deleting head timer
@@ -279,35 +286,27 @@ static inline app_timer_running_count_t _total_timer_counts(void)
  */
 static void _remove_expired_timers(app_timer_running_count_t now)
 {
-    app_timer_t *head = _active_timers_head;
-    while ((NULL != head) && (_ticks_until_expiry(now, head) == 0u))
+    while ((NULL != _active_timers_head) && (_ticks_until_expiry(now, _active_timers_head) == 0u))
     {
-        // Save pointer to next timer, before unlinking head timer
-        app_timer_t *next = head->next;
+        app_timer_t *curr = _active_timers_head;
+
+        // Set pending flag to indicate timer expired but not yet handled
+        curr->flags |= FLAGS_PENDING_BIT;
 
         // Unlink timer from active list
-        _remove_active_timer(head);
-
-        app_timer_type_e type = (app_timer_type_e) ((head->flags & FLAGS_TYPE_MASK) >> FLAGS_TYPE_POS);
-        if (APP_TIMER_TYPE_REPEATING != type)
-        {
-            /* Clear active flag, unless timer type is repeating. Repeating timers,
-             * once started, only become inactive when stopped by app_timer_stop. */
-            head->flags &= ~FLAGS_ACTIVE_BIT;
-        }
+        _remove_active_timer(curr);
 
         // Add timer to the expired list
         if (NULL == _expired_timers_head)
         {
-            _expired_timers_head = head;
+            _expired_timers_head = curr;
         }
         else
         {
-            _expired_timers_tail->next = head;
+            _expired_timers_tail->next = curr;
         }
 
-        _expired_timers_tail = head;
-        head = next;
+        _expired_timers_tail = curr;
     }
 }
 
@@ -331,6 +330,7 @@ static void _handle_expired_timers(app_timer_running_count_t now)
         if (NULL != curr->handler)
         {
             curr->handler(curr->context);
+            curr->flags &= ~FLAGS_PENDING_BIT;
         }
 
         // Extract timer type from flags var
@@ -583,7 +583,7 @@ app_timer_error_e app_timer_is_active(app_timer_t *timer, bool *is_active)
         return APP_TIMER_NULL_PARAM;
     }
 
-    *is_active = ((timer->flags & FLAGS_ACTIVE_BIT) > 0u);
+    *is_active = ((timer->flags & (FLAGS_ACTIVE_BIT | FLAGS_PENDING_BIT)) > 0u);
 
     return APP_TIMER_OK;
 }
