@@ -282,6 +282,9 @@ static void _remove_expired_timers(app_timer_running_count_t now)
     app_timer_t *head = _active_timers_head;
     while ((NULL != head) && (_ticks_until_expiry(now, head) == 0u))
     {
+        // Save pointer to next timer, before unlinking head timer
+        app_timer_t *next = head->next;
+
         // Unlink timer from active list
         _remove_active_timer(head);
 
@@ -304,7 +307,7 @@ static void _remove_expired_timers(app_timer_running_count_t now)
         }
 
         _expired_timers_tail = head;
-        head = head->next;
+        head = next;
     }
 }
 
