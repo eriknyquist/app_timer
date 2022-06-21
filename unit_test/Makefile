@@ -33,6 +33,9 @@ default: test
 
 all: clean test
 
+debug: CFLAGS += -g -O0
+debug: $(TEST_PROG)
+
 test: $(TEST_PROG)
 
 $(TEST_PROG): $(OUTPUT_DIR)
