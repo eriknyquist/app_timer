@@ -182,8 +182,7 @@ typedef struct _app_timer_t
     /**
      * Bit flags for timer
      *
-     * Bit 0     : timer active. 1 when timer is in active list, 0 otherwise.
-     * Bit 1     : timer pending. 1 when timer is in expired list, 0 otherwise.
+     * Bits 0-1  : timer state, one of _timer_state_e (defined in app_timer.c)
      * Bits 2-3  : timer type, one of app_timer_type_e
      * Bits 4-7  : unused
      */

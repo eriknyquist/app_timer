@@ -28,7 +28,7 @@
 #endif // VERBOSE
 
 
-#define TOTAL_TEST_TIME_SECONDS (10u * 60u) ///< Total runtime for all timers, seconds
+#define TOTAL_TEST_TIME_SECONDS (10 * 60u)   ///< Total runtime for all timers, seconds
 #define TIME_LOG_INTERVAL_SECS  (300u)       ///< How often to log runtime remaining, seconds
 
 #define NUM_SINGLE_TIMERS (128u)             ///< Number of single-shot timers to create (re-started in timer callback)
@@ -37,10 +37,10 @@
     (NUM_SINGLE_TIMERS + NUM_REPEAT_TIMERS)  ///< Total number of timers
 
 #define SINGLE_PERIOD_START_MS (200u)        ///< Period of first single-shot timer, in millisecs
-#define SINGLE_PERIOD_INCREMENT_MS (20u)     ///< Increment period for each subsequent single-shot timer by this much
+#define SINGLE_PERIOD_INCREMENT_MS (50u)     ///< Increment period for each subsequent single-shot timer by this much
 
-#define REPEAT_PERIOD_START_MS (210u)        ///< Period of first repeating timer, in millisecs
-#define REPEAT_PERIOD_INCREMENT_MS (20u)     ///< Increment period for each subsequent repeating timer by this much
+#define REPEAT_PERIOD_START_MS (225u)        ///< Period of first repeating timer, in millisecs
+#define REPEAT_PERIOD_INCREMENT_MS (50u)     ///< Increment period for each subsequent repeating timer by this much
 
 #define MAX_LOG_MSG_SIZE (256u)              ///< Log messages printed to stdout can't be larger than this
 
@@ -451,9 +451,6 @@ int main(int argc, char *argv[])
             _log("%"PRIu64" seconds remaining\n", secs_remaining);
         }
     }
-
-    polling_app_timer_poll();
-    polling_app_timer_poll();
 
     _log("test complete, stopping all timers...\n");
 
