@@ -45,6 +45,11 @@ extern "C" {
 #define FLAGS_TYPE_MASK (0xCu)
 #define FLAGS_TYPE_POS  (0x2u)
 
+/**
+ * Bit mask for flag indicating that timer was stopped while on the pending/expired list
+ */
+#define FLAGS_STOPPED_MASK (0x10)
+
 
 /**
  * Represents a doubly-linked list of app_timer_t instances
@@ -105,7 +110,7 @@ static volatile app_timer_count_t _counts_after_last_start = 0u;
 /**
  * True when app_timer_target_count_reached is executing
  */
-static volatile bool _isr_running = false;
+static volatile bool _inside_target_count_reached = false;
 
 /**
  * True when app_timer_init has completed successfully
@@ -339,14 +344,13 @@ static void _handle_expired_timers(app_timer_running_count_t now)
     {
         // Remove handler from the list, update head
         app_timer_t *curr = _expired_timers.head;
-        _expired_timers.head = _expired_timers.head->next;
-        curr->next = NULL;
+        _remove_timer_from_list(&_expired_timers, curr);
 
         // Clear state bits to set timer state to idle
         curr->flags &= ~FLAGS_STATE_MASK;
 
         // Run the handler
-        if (NULL != curr->handler)
+        if (NULL != curr->handler && ((curr->flags & FLAGS_STOPPED_MASK) == 0u))
         {
             curr->handler(curr->context);
         }
@@ -357,7 +361,8 @@ static void _handle_expired_timers(app_timer_running_count_t now)
         // Extract timer state from flags var
         _timer_state_e state = (_timer_state_e) ((curr->flags & FLAGS_STATE_MASK) >> FLAGS_STATE_POS);
 
-        if ((APP_TIMER_TYPE_REPEATING == type) && (TIMER_STATE_ACTIVE != state))
+        if ((APP_TIMER_TYPE_REPEATING == type) && (TIMER_STATE_ACTIVE != state) &&
+            ((curr->flags & FLAGS_STOPPED_MASK) == 0u))
         {
             // Disable interrupts while modifying the list of active timers
             app_timer_int_status_t int_status = 0u;
@@ -370,6 +375,9 @@ static void _handle_expired_timers(app_timer_running_count_t now)
 
             _hw_model->set_interrupts_enabled(true, &int_status);
         }
+
+        // Ensure timer 'stopped' flag is cleared
+        curr->flags &= ~FLAGS_STOPPED_MASK;
     }
 
     // Traversed the entire list of expired timers, NULL-ify the tail item
@@ -386,7 +394,7 @@ void app_timer_target_count_reached(void)
      * that any calls to app_timer_start inside handlers will know not to configure
      * the timer, since we will do that at the end of this function. This does not
      * need to be protected from interrupts. */
-    _isr_running = true;
+    _inside_target_count_reached = true;
 
     // Disable interrupts to update _running_timer_count and pop expired timers off the list
     app_timer_int_status_t int_status = 0u;
@@ -442,7 +450,7 @@ void app_timer_target_count_reached(void)
 
     _hw_model->set_interrupts_enabled(true, &int_status);
 
-    _isr_running = false;
+    _inside_target_count_reached = false;
 }
 
 
@@ -525,7 +533,7 @@ app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_fr
     /* timer->start_counts must be set before calling _insert_active_timer; the expiry
      * time of the timer must be known in order to position the new timer correctly
      * within the list */
-    if (only_timer && !_isr_running)
+    if (only_timer && !_inside_target_count_reached)
     {
         /* No other timers are running, and we're not being called from
          * app_timer_target_count_reached, so start_counts should be 0. */
@@ -543,7 +551,7 @@ app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_fr
     _insert_active_timer(timer);
 
     /* If this is the new head of the list, we need to re-configure the hardware timer/counter */
-    if ((timer == _active_timers.head) && !_isr_running)
+    if ((timer == _active_timers.head) && !_inside_target_count_reached)
     {
         if (!only_timer)
         {
@@ -592,25 +600,29 @@ app_timer_error_e app_timer_stop(app_timer_t *timer)
     {
         // Remove from active timers list
         _remove_timer_from_list(&_active_timers, timer);
+
+        // Clear state bits to set timer state to idle
+        timer->flags &= ~FLAGS_STATE_MASK;
+
+        if (NULL == _active_timers.head)
+        {
+            // If this was the only active timer, stop the counter
+            _hw_model->set_timer_running(false);
+            _running_timer_count = 0u;
+        }
+
     }
     else if (TIMER_STATE_PENDING == state)
     {
-        // Remove from expired timers list
-        _remove_timer_from_list(&_expired_timers, timer);
+        /* If timer is in the pending state, that means this code has interrupted
+         * app_timer_target_count_reached. We should not modify the list of expired timers,
+         * since that must only be done inside app_timer_target_count_reached. Instead, set
+         * the 'stopped' flag, to let app_timer_target_count_reached that the timer was stopped. */
+        timer->flags |= FLAGS_STOPPED_MASK;
     }
     else
     {
         ; // Nothing to do if timer state is idle
-    }
-
-    // Clear state bits to set timer state to idle
-    timer->flags &= ~FLAGS_STATE_MASK;
-
-    if (NULL == _active_timers.head)
-    {
-        // If this was the only active timer, stop the counter
-        _hw_model->set_timer_running(false);
-        _running_timer_count = 0u;
     }
 
     _hw_model->set_interrupts_enabled(true, &int_status);

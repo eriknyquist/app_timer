@@ -184,7 +184,8 @@ typedef struct _app_timer_t
      *
      * Bits 0-1  : timer state, one of _timer_state_e (defined in app_timer.c)
      * Bits 2-3  : timer type, one of app_timer_type_e
-     * Bits 4-7  : unused
+     * Bit 4     : timer stopped while pending, 1 = stopped, 0 = not stopped
+     * Bits 5-7  : unused
      */
     volatile uint8_t flags;
 } app_timer_t;
