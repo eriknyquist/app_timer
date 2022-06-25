@@ -616,7 +616,7 @@ app_timer_error_e app_timer_stop(app_timer_t *timer)
             /* Head timer removed, and there are more active timers. Need to update
              * _running_timer_count and re-configure counter (unless we're being called
              * from inside app_timer_target_count_reached, which will re-config the counter
-             * as needed when it finishes. */
+             * as needed when it finishes). */
             _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
             _hw_model->set_timer_running(false);
             _configure_timer(_ticks_until_expiry(_running_timer_count, _active_timers.head));

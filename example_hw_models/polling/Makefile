@@ -30,7 +30,7 @@ TEST_OBJ_FILES := $(patsubst %.c,%.o,$(addprefix $(OBJ_DIR)/,$(notdir $(TEST_SRC
 EXAMPLE_OBJ_FILES := $(patsubst %.c,%.o,$(addprefix $(OBJ_DIR)/,$(notdir $(EXAMPLE_SRC_FILES))))
 
 INCLUDES := $(addprefix -I, $(SRC_DIRS))
-FLAGS := -std=c99 -Wall -O2 -DAPP_TIMER_RUNNING_COUNT_UINT64 -DAPP_TIMER_COUNT_UINT32
+FLAGS := -std=c99 -Wall -DAPP_TIMER_RUNNING_COUNT_UINT64 -DAPP_TIMER_COUNT_UINT32
 CFLAGS := $(FLAGS) $(INCLUDES)
 
 EXAMPLE_PROG := $(OUTPUT_DIR)/example_main
@@ -38,13 +38,18 @@ TEST_PROG := $(OUTPUT_DIR)/test_main
 
 .PHONY: clean output_dir
 
-default: example
+default: all
 
 all: example test
 
+example: CFLAGS += -O2
 example: $(EXAMPLE_PROG)
 
+test: CFLAGS += -O2
 test: $(TEST_PROG)
+
+debug: CFLAGS += -O0 -g
+debug: $(TEST_PROG)
 
 $(EXAMPLE_PROG): output_dir $(EXAMPLE_OBJ_FILES)
 	$(GCC) $(LFLAGS) $(EXAMPLE_OBJ_FILES) -o $@

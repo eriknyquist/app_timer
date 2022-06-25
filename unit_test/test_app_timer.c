@@ -2100,6 +2100,65 @@ void test_app_timer_stop_already_stopped(void)
 }
 
 
+// Tests that app_timer_stop stops the HW counter, when the timer being removed
+// is the only remaining timer
+void test_app_timer_stop_hwcounter_only_stopped_on_last(void)
+{
+    app_timer_t t1, t2;
+
+    void *old_read_timer_counts = _hw_model.read_timer_counts;
+    void *old_set_timer_running = _hw_model.set_timer_running;
+    void *old_set_interrupts_enabled = _hw_model.set_interrupts_enabled;
+    void *old_set_timer_period_counts = _hw_model.set_timer_period_counts;
+    void *old_units_to_timer_counts = _hw_model.units_to_timer_counts;
+
+    _hw_model.read_timer_counts = _mock_read_timer_counts;
+    _hw_model.set_timer_running = _mock_set_timer_running;
+    _hw_model.set_timer_period_counts = _mock_set_timer_period_counts;
+    _hw_model.set_interrupts_enabled = _mock_set_interrupts_enabled;
+    _hw_model.units_to_timer_counts = _mock_units_to_timer_counts;
+
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _units_to_timer_counts_expect(1000u);
+    _units_to_timer_counts_retval = 1000u;
+    _set_timer_period_counts_expect(1000u);
+    _set_timer_running_expect(true);
+    _set_interrupts_enabled_expect(true);
+
+    // Starting timer1
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_start(&t1, 1000u, NULL));
+
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(false);
+    _units_to_timer_counts_expect(1200u);
+    _units_to_timer_counts_retval = 1200;
+    _set_interrupts_enabled_expect(true);
+
+    // Starting timer2
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_start(&t2, 1200u, NULL));
+
+    // Stop timer 2, HW counter should be left alone
+    _set_interrupts_enabled_expect(false);
+    _set_interrupts_enabled_expect(true);
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&t2));
+
+    // Stop timer 1, HW counter should be stopped now
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_interrupts_enabled_expect(true);
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&t1));
+
+    // Restore valid values
+    _hw_model.read_timer_counts = old_read_timer_counts;
+    _hw_model.set_timer_running = old_set_timer_running;
+    _hw_model.set_interrupts_enabled = old_set_interrupts_enabled;
+    _hw_model.set_timer_period_counts = old_set_timer_period_counts;
+    _hw_model.units_to_timer_counts = old_units_to_timer_counts;
+}
+
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -2140,6 +2199,7 @@ int main(void)
     RUN_TEST(test_app_timer_target_count_reached_repeating_handler_restarted);
     RUN_TEST(test_app_timer_stop_null_timer);
     RUN_TEST(test_app_timer_stop_already_stopped);
+    RUN_TEST(test_app_timer_stop_hwcounter_only_stopped_on_last);
 
     return UNITY_END();
 }
