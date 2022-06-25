@@ -599,6 +599,7 @@ app_timer_error_e app_timer_stop(app_timer_t *timer)
     if (TIMER_STATE_ACTIVE == state)
     {
         // Remove from active timers list
+        bool head_removed  = (_active_timers.head == timer);
         _remove_timer_from_list(&_active_timers, timer);
 
         // Clear state bits to set timer state to idle
@@ -609,6 +610,22 @@ app_timer_error_e app_timer_stop(app_timer_t *timer)
             // If this was the only active timer, stop the counter
             _hw_model->set_timer_running(false);
             _running_timer_count = 0u;
+        }
+        else if (head_removed && !_inside_target_count_reached)
+        {
+            /* Head timer removed, and there are more active timers. Need to update
+             * _running_timer_count and re-configure counter (unless we're being called
+             * from inside app_timer_target_count_reached, which will re-config the counter
+             * as needed when it finishes. */
+            _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
+            _hw_model->set_timer_running(false);
+            _configure_timer(_ticks_until_expiry(_running_timer_count, _active_timers.head));
+            _hw_model->set_timer_running(true);
+            _counts_after_last_start = _hw_model->read_timer_counts();
+        }
+        else
+        {
+            ; // Nothing to do
         }
 
     }

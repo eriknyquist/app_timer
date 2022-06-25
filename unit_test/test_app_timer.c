@@ -180,6 +180,7 @@ static void _mock_set_timer_period_counts(app_timer_count_t counts)
 
     if (args->counts != counts)
     {
+        printf("%d\n", counts);
         TEST_FAIL_MESSAGE("unexpected arg passed to hw_model->set_timer_period_counts");
     }
 
@@ -755,8 +756,8 @@ void test_app_timer_start_success_hwcounter_already_running(void)
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _units_to_timer_counts_expect(1000u);
-    _units_to_timer_counts_retval = 1234;
-    _set_timer_period_counts_expect(1234);
+    _units_to_timer_counts_retval = 1000;
+    _set_timer_period_counts_expect(1000);
     _set_timer_running_expect(true);
     _set_interrupts_enabled_expect(true);
 
@@ -772,7 +773,7 @@ void test_app_timer_start_success_hwcounter_already_running(void)
     _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _units_to_timer_counts_expect(2000u);
-    _units_to_timer_counts_retval = 1234;
+    _units_to_timer_counts_retval = 2000;
     _set_interrupts_enabled_expect(true);
 
     // Starting timer2
@@ -786,6 +787,11 @@ void test_app_timer_start_success_hwcounter_already_running(void)
 
     // Stop timer1; HW counter should not be stopped yet
     _set_interrupts_enabled_expect(false);
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(2000u);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
     _set_interrupts_enabled_expect(true);
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&t1));
 
@@ -1626,10 +1632,20 @@ void test_app_timer_target_count_reached_multi_repeating_diff_expiries(void)
 
     // Stop all timers
     _set_interrupts_enabled_expect(false);
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(1100u);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
     _set_interrupts_enabled_expect(true);
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&t1));
 
     _set_interrupts_enabled_expect(false);
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(1300u);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
     _set_interrupts_enabled_expect(true);
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&t2));
 
@@ -1825,6 +1841,11 @@ void test_app_timer_target_count_reached_repeating_inactive_when_stopped(void)
 
     // Stop all timers
     _set_interrupts_enabled_expect(false);
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(1200u);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
     _set_interrupts_enabled_expect(true);
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&t1));
 
