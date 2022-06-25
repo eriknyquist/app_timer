@@ -42,9 +42,100 @@ Features / limitations
   how much memory your system has available for declaring app_timer_t structs, whether statically or otherwise.
 
 - Automatic handling of timer/counter overflow; if you are using a timer/counter, for example, which overflows after
-  30 minutes with your specific configuration, and you call ``app_timer_start`` with an expiry time of 72 hours,
+  30 minutes with your specific configuration, and you call ``app_timer_start`` with an expiry time of, say, 72 hours,
   then the overflow will be handled behind the scenes by the ``app_timer`` module and your timer callback will still
   only be invoked after 72 hours.
+
+Build options
+-------------
+
+There are several preprocessor symbols you can define to change various things at compile time.
+The following sections provide some details about those options.
+
+Datatype used for app_timer_period_t
+====================================
+
+Determines the datatype used to represent the period for a timer (e.g. the
+'time_from_now' parameter passed to app_timer_start).
+
+For example, if you are using a hardware model that expects milliseconds for timer periods,
+and uint32_t is used for timer periods, then the max. timer period you can pass to app_timer_start
+is 2^32 milliseconds, or about 49 days.
+
+Define one of the following options;
+
++---------------------------------------+------------------------------------------------------------+
+| **Symbol name**                       | **What you get if you define this symbol**                 |
++=======================================+============================================================+
+| ``APP_TIMER_PERIOD_UINT32``           | ``app_timer_period_t`` is type ``uint32_t`` **(default)**  |
++---------------------------------------+------------------------------------------------------------+
+| ``APP_TIMER_PERIOD_UINT64``           | ``app_timer_period_t`` is type ``uint64_t``                |
++---------------------------------------+------------------------------------------------------------+
+
+
+Datatype used for app_timer_count_t
+===================================
+
+Determines the datatype used to represent a count value for the underlying hardware counter.
+This should be set to an unsigned fixed-width integer type that is large enough
+to hold the number of bits the counter has. For example, if using a 24-bit counter,
+uint32_t would be sufficient, but not uint16_t.
+
+Define one of the following options;
+
++---------------------------------------+------------------------------------------------------------+
+| **Symbol name**                       | **What you get if you define this symbol**                 |
++=======================================+============================================================+
+| ``APP_TIMER_COUNT_UINT16``            | ``app_timer_count_t`` is type ``uint16_t``                 |
++---------------------------------------+------------------------------------------------------------+
+| ``APP_TIMER_COUNT_UINT32``            | ``app_timer_count_t`` is type ``uint32_t`` **(default)**   |
++---------------------------------------+------------------------------------------------------------+
+
+
+Datatype used for app_timer_running_count_t
+===========================================
+
+Determines the datatype used to represent a running counter that tracks total elapsed time
+since one or more active timers have been running continuously.
+
+You should pick this according to the expected lifetime of your system. Let's
+say, for example, that you are using a counter driven by a 32KHz clock; this
+would mean using uint32_t for the running counter allows the app_timer module
+to have timers running continuously for up to 2^32(-1) ticks, before the running
+counter overflows. 2^32(-1) ticks at 32KHz is about 36 hours. Using
+uint64_t for the running counter, so 2^64(-1) ticks before overflow, with the same
+setup would get you over a million years before overflow.
+
+This running counter also gets reset to 0 when there are no active timers, so the overflow
+condition will only occur when there have been one or more active timers continuously for
+the maximum number of ticks.
+
+Define one of the following options;
+
++---------------------------------------+--------------------------------------------------------------------+
+| **Symbol name**                       | **What you get if you define this symbol**                         |
++=======================================+====================================================================+
+| ``APP_TIMER_RUNNING_COUNT_UINT32``    | ``app_timer_running_count_t`` is type ``uint32_t`` **(default)**   |
++---------------------------------------+--------------------------------------------------------------------+
+| ``APP_TIMER_RUNNING_COUNT_UINT64``    | ``app_timer_running_count_t`` is type ``uint64_t``                 |
++---------------------------------------+--------------------------------------------------------------------+
+
+
+Datatype used for app_timer_int_status_t
+========================================
+
+Determines the datatype used to represent the interrupt status passed to 'set_interrupts_enabled'.
+
+Define one of the following options;
+
++---------------------------------------+--------------------------------------------------------------------+
+| **Symbol name**                       | **What you get if you define this symbol**                         |
++=======================================+====================================================================+
+| ``APP_TIMER_INT_UINT32``              | ``app_timer_int_status_t`` is type ``uint32_t`` **(default)**      |
++---------------------------------------+--------------------------------------------------------------------+
+| ``APP_TIMER_INT_UINT64``              | ``app_timer_int_status_t`` is type ``uint64_t``                    |
++---------------------------------------+--------------------------------------------------------------------+
+
 
 Included hardware model and example sketch for Arduino UNO
 ----------------------------------------------------------

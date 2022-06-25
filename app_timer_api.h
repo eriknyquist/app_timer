@@ -86,7 +86,7 @@ typedef uint64_t app_timer_period_t;
 
 /**
  * Datatype used to represent a count value for the underlying hardware counter.
-
+ *
  * This should be set to an unsigned fixed-width integer type that is large enough
  * to hold the number of bits the counter has. For example, if using a 24-bit counter,
  * uint32_t would be sufficient, but not uint16_t.
