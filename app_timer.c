@@ -585,7 +585,7 @@ app_timer_error_e app_timer_stop(app_timer_t *timer)
 
     if (NULL == timer)
     {
-        return APP_TIMER_INVALID_PARAM;
+        return APP_TIMER_NULL_PARAM;
     }
 
     /* Disable interrupts, don't want another app_timer function being called from ISR

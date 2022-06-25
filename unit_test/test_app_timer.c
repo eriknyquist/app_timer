@@ -516,7 +516,7 @@ void test_app_timer_create_success_repeating(void)
 
 
 // Tests that app_timer_create succeeds in the happy path (single-shot timer)
-void test_app_timer_create_success_single_shot(void)
+void test_app_timer_create_success_singleshot(void)
 {
     app_timer_t t;
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t, _dummy_handler, APP_TIMER_TYPE_SINGLE_SHOT));
@@ -810,6 +810,7 @@ void test_app_timer_start_success_hwcounter_already_running(void)
     _hw_model.max_count = old_max_count;
 }
 
+
 // Tests that app_timer_start re-configures the hardware counter, when the
 // new timer will have the soonest expiry time
 void test_app_timer_start_new_head_timer_changes_counter(void)
@@ -903,6 +904,7 @@ void test_app_timer_start_new_head_timer_changes_counter(void)
     _hw_model.units_to_timer_counts = old_units_to_timer_counts;
 }
 
+
 static bool _t1_callback_called = false;
 static bool _t2_callback_called = false;
 static bool _t3_callback_called = false;
@@ -921,6 +923,7 @@ static void _t3_callback(void *context)
 {
     _t3_callback_called = true;
 }
+
 
 // Tests that app_timer_target_count_reached runs timer callbacks at the expected
 // time when 3 single-shot timer instances with different expiry times are running
@@ -1090,6 +1093,7 @@ void test_app_timer_target_count_reached_multi_singleshot_diff_expiries(void)
     _hw_model.units_to_timer_counts = old_units_to_timer_counts;
 }
 
+
 // Tests that app_timer_target_count_reached runs timer callbacks at the expected
 // time when 3 single-shot timer instances with the same expiry time are running
 void test_app_timer_target_count_reached_multi_singleshot_same_expiry(void)
@@ -1196,6 +1200,7 @@ void test_app_timer_target_count_reached_multi_singleshot_same_expiry(void)
     _hw_model.set_timer_period_counts = old_set_timer_period_counts;
     _hw_model.units_to_timer_counts = old_units_to_timer_counts;
 }
+
 
 // Tests that the timer callback is invoked after the expected number of app_timer_target_count_reached
 // invocations, when a single-shot timer instance is started with a period several times larger than _hw_model.max_count
@@ -1329,6 +1334,7 @@ void test_app_timer_target_count_reached_singleshot_period_gt_maxcount(void)
     _hw_model.max_count = old_max_count;
 }
 
+
 static app_timer_t _t1_restart;
 static bool _t1_restart_callback_called = false;
 static void _t1_restart_callback(void *context)
@@ -1337,9 +1343,10 @@ static void _t1_restart_callback(void *context)
     _t1_restart_callback_called = true;
 }
 
+
 // Tests that single-shot timer instances are handled correctly by app_timer_target_count_reached
 // if the timer instance is re-started in the handler
-void test_app_timer_target_count_reached_single_shot_handler_restarted(void)
+void test_app_timer_target_count_reached_singleshot_handler_restarted(void)
 {
     bool active1;
 
@@ -1454,6 +1461,8 @@ void test_app_timer_target_count_reached_single_shot_handler_restarted(void)
     _hw_model.set_timer_period_counts = old_set_timer_period_counts;
     _hw_model.units_to_timer_counts = old_units_to_timer_counts;
 }
+
+
 // Tests that app_timer_target_count_reached runs timer callbacks at the expected
 // time when 3 repeating timer instances with different expiry times are running
 void test_app_timer_target_count_reached_multi_repeating_diff_expiries(void)
@@ -1644,6 +1653,7 @@ void test_app_timer_target_count_reached_multi_repeating_diff_expiries(void)
     _hw_model.set_timer_period_counts = old_set_timer_period_counts;
     _hw_model.units_to_timer_counts = old_units_to_timer_counts;
 }
+
 
 // Tests that repeating timer instances only become inactive when stopped (not expired),
 // and also that repeating timers do indeed repeat until stopped
@@ -1837,6 +1847,7 @@ void test_app_timer_target_count_reached_repeating_inactive_when_stopped(void)
     _hw_model.units_to_timer_counts = old_units_to_timer_counts;
 }
 
+
 // Tests that repeating timer instances are still handled correctly by app_timer_target_count_reached,
 // even if the timer instance is needlessly re-started in the handler
 void test_app_timer_target_count_reached_repeating_handler_restarted(void)
@@ -1956,17 +1967,126 @@ void test_app_timer_target_count_reached_repeating_handler_restarted(void)
 }
 
 
+// Tests that app_timer_stop returns expected error code, and does nothing else,
+// when NULL pointer is provided for the timer instance
+void test_app_timer_stop_null_timer(void)
+{
+    void *old_read_timer_counts = _hw_model.read_timer_counts;
+    void *old_set_timer_running = _hw_model.set_timer_running;
+    void *old_set_interrupts_enabled = _hw_model.set_interrupts_enabled;
+    void *old_set_timer_period_counts = _hw_model.set_timer_period_counts;
+    void *old_units_to_timer_counts = _hw_model.units_to_timer_counts;
+
+    _hw_model.read_timer_counts = _mock_read_timer_counts;
+    _hw_model.set_timer_running = _mock_set_timer_running;
+    _hw_model.set_timer_period_counts = _mock_set_timer_period_counts;
+    _hw_model.set_interrupts_enabled = _mock_set_interrupts_enabled;
+    _hw_model.units_to_timer_counts = _mock_units_to_timer_counts;
+
+    app_timer_t t;
+
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t, _dummy_handler, APP_TIMER_TYPE_REPEATING));
+
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _units_to_timer_counts_expect(1000u);
+    _units_to_timer_counts_retval = 1000u;
+    _set_timer_period_counts_expect(1000u);
+    _set_timer_running_expect(true);
+    _set_interrupts_enabled_expect(true);
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_start(&t, 1000u, NULL));
+
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_NULL_PARAM, app_timer_stop(NULL));
+
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_interrupts_enabled_expect(true);
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&t));
+
+    // Restore valid values
+    _hw_model.read_timer_counts = old_read_timer_counts;
+    _hw_model.set_timer_running = old_set_timer_running;
+    _hw_model.set_interrupts_enabled = old_set_interrupts_enabled;
+    _hw_model.set_timer_period_counts = old_set_timer_period_counts;
+    _hw_model.units_to_timer_counts = old_units_to_timer_counts;
+}
+
+
+// Tests that app_timer_stop doesn't do anything when the timer has already been stopped
+void test_app_timer_stop_already_stopped(void)
+{
+    void *old_read_timer_counts = _hw_model.read_timer_counts;
+    void *old_set_timer_running = _hw_model.set_timer_running;
+    void *old_set_interrupts_enabled = _hw_model.set_interrupts_enabled;
+    void *old_set_timer_period_counts = _hw_model.set_timer_period_counts;
+    void *old_units_to_timer_counts = _hw_model.units_to_timer_counts;
+
+    _hw_model.read_timer_counts = _mock_read_timer_counts;
+    _hw_model.set_timer_running = _mock_set_timer_running;
+    _hw_model.set_timer_period_counts = _mock_set_timer_period_counts;
+    _hw_model.set_interrupts_enabled = _mock_set_interrupts_enabled;
+    _hw_model.units_to_timer_counts = _mock_units_to_timer_counts;
+
+    app_timer_t t;
+
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t, _dummy_handler, APP_TIMER_TYPE_REPEATING));
+
+    // verify timer is not active yet
+    bool active;
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t, &active));
+    TEST_ASSERT_FALSE(active);
+
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _units_to_timer_counts_expect(1000u);
+    _units_to_timer_counts_retval = 1000u;
+    _set_timer_period_counts_expect(1000u);
+    _set_timer_running_expect(true);
+    _set_interrupts_enabled_expect(true);
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_start(&t, 1000u, NULL));
+
+    // Timer should be active now
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t, &active));
+    TEST_ASSERT_TRUE(active);
+
+    // Stop the timer
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_interrupts_enabled_expect(true);
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&t));
+
+    // Timer should be inactive now
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t, &active));
+    TEST_ASSERT_FALSE(active);
+
+    // Stop the timer again
+    _set_interrupts_enabled_expect(false);
+    _set_interrupts_enabled_expect(true);
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&t));
+
+    // Timer should still be inactive
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t, &active));
+    TEST_ASSERT_FALSE(active);
+
+    // Restore valid values
+    _hw_model.read_timer_counts = old_read_timer_counts;
+    _hw_model.set_timer_running = old_set_timer_running;
+    _hw_model.set_interrupts_enabled = old_set_interrupts_enabled;
+    _hw_model.set_timer_period_counts = old_set_timer_period_counts;
+    _hw_model.units_to_timer_counts = old_units_to_timer_counts;
+}
+
+
 int main(void)
 {
     UNITY_BEGIN();
 
-    // Tests for all functions before module initialization
     RUN_TEST(test_app_timer_create_not_init);
     RUN_TEST(test_app_timer_start_not_init);
     RUN_TEST(test_app_timer_stop_not_init);
     RUN_TEST(test_app_timer_is_active_not_init);
-
-    // Tests for app_timer_init
     RUN_TEST(test_app_timer_init_null_hwmodel_ptr);
     RUN_TEST(test_app_timer_init_max_count_invalid);
     RUN_TEST(test_app_timer_init_null_init);
@@ -1977,34 +2097,28 @@ int main(void)
     RUN_TEST(test_app_timer_init_null_set_interrupts_enabled);
     RUN_TEST(test_app_timer_init_hwmodel_init_fail);
     RUN_TEST(test_app_timer_init_success);
-
-    // Tests for app_timer_create
     RUN_TEST(test_app_timer_create_null_timer);
     RUN_TEST(test_app_timer_create_invalid_type);
     RUN_TEST(test_app_timer_create_success_repeating);
-    RUN_TEST(test_app_timer_create_success_single_shot);
-
-    // Tests for app_timer_is_active
+    RUN_TEST(test_app_timer_create_success_singleshot);
     RUN_TEST(test_app_timer_is_active_null_timer);
     RUN_TEST(test_app_timer_is_active_null_result);
     RUN_TEST(test_app_timer_is_active_repeating_success);
-
-    // Tests for app_timer_start
     RUN_TEST(test_app_timer_start_null_timer);
     RUN_TEST(test_app_timer_start_invalid_time);
     RUN_TEST(test_app_timer_start_already_started);
     RUN_TEST(test_app_timer_start_success_period_gt_maxcount);
     RUN_TEST(test_app_timer_start_success_hwcounter_already_running);
     RUN_TEST(test_app_timer_start_new_head_timer_changes_counter);
-
-    // Tests for app_timer_target_count_reached
     RUN_TEST(test_app_timer_target_count_reached_multi_singleshot_diff_expiries);
     RUN_TEST(test_app_timer_target_count_reached_multi_singleshot_same_expiry);
     RUN_TEST(test_app_timer_target_count_reached_singleshot_period_gt_maxcount);
-    RUN_TEST(test_app_timer_target_count_reached_single_shot_handler_restarted);
+    RUN_TEST(test_app_timer_target_count_reached_singleshot_handler_restarted);
     RUN_TEST(test_app_timer_target_count_reached_multi_repeating_diff_expiries);
     RUN_TEST(test_app_timer_target_count_reached_repeating_inactive_when_stopped);
     RUN_TEST(test_app_timer_target_count_reached_repeating_handler_restarted);
+    RUN_TEST(test_app_timer_stop_null_timer);
+    RUN_TEST(test_app_timer_stop_already_stopped);
 
     return UNITY_END();
 }
