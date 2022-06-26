@@ -2118,6 +2118,9 @@ void test_app_timer_stop_hwcounter_only_stopped_on_last(void)
     _hw_model.set_interrupts_enabled = _mock_set_interrupts_enabled;
     _hw_model.units_to_timer_counts = _mock_units_to_timer_counts;
 
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t1, _dummy_handler, APP_TIMER_TYPE_REPEATING));
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&t2, _dummy_handler, APP_TIMER_TYPE_REPEATING));
+
     _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _set_timer_running_expect(false);
