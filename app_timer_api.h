@@ -13,15 +13,9 @@
  *        2. Ensure "app_timer_target_count_reached" is called in the interrupt handler for the
  *           timer/counter hardware being used.
  *
- *        3. Ensure that either APP_TIMER_COUNT_UINT16 or APP_TIMER_COUNT_UINT32 is set --
- *           pick one that is large enough to hold all the bits of your hardware counter.
- *           For example, if you had a 24-bit counter, you could use APP_TIMER_COUNT_UINT32,
- *           but not APP_TIMER_COUNT_UINT16. If you don't define one of these options, the
- *           default is APP_TIMER_COUNT_UINT32.
+ *        3. Call app_timer_init() and pass in a pointer to the hardware model you created.
  *
- *        4. Call app_timer_init() and pass in a pointer to the hardware model you created.
- *
- *        5. Now, app_timer_create and app_timer_start can be used to create as
+ *        4. Now, app_timer_create and app_timer_start can be used to create as
  *           many application timers as needed (see app_timer_api.h).
  */
 
