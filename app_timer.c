@@ -178,9 +178,7 @@ static void _insert_active_timer(app_timer_t *timer)
     while (NULL != curr)
     {
         // Timer ticks until this timer expires (0u if it should have already expired)
-        app_timer_running_count_t ticks_until_expiry = _ticks_until_expiry(now, curr);
-
-        if (ticks_until_expiry > timer->total_counts)
+        if (_ticks_until_expiry(now, curr) > timer->total_counts)
         {
             // First timer seen that expires later than new timer, break out
             break;
@@ -474,8 +472,7 @@ app_timer_error_e app_timer_create(app_timer_t *timer, app_timer_handler_t handl
     timer->next = NULL;
     timer->previous = NULL;
 
-    /* Set timer type. Initial timer state is idle, which is all zeros for the
-     * timer state bits, so no need to set anything specially for the state here. */
+    /* Set timer type. Other flags should be 0 by default */
     timer->flags = ((((uint8_t) type) << FLAGS_TYPE_POS) & FLAGS_TYPE_MASK);
 
     return APP_TIMER_OK;
