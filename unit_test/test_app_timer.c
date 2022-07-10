@@ -1101,9 +1101,7 @@ void test_app_timer_target_count_reached_multi_singleshot_diff_expiries(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(200u);
@@ -1132,9 +1130,7 @@ void test_app_timer_target_count_reached_multi_singleshot_diff_expiries(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(100u);
@@ -1163,9 +1159,7 @@ void test_app_timer_target_count_reached_multi_singleshot_diff_expiries(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_interrupts_enabled_expect(true);
@@ -1271,9 +1265,7 @@ void test_app_timer_target_count_reached_multi_singleshot_same_expiry(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_interrupts_enabled_expect(true);
@@ -1356,9 +1348,7 @@ void test_app_timer_target_count_reached_singleshot_period_gt_maxcount(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(_hw_model.max_count);
@@ -1382,9 +1372,7 @@ void test_app_timer_target_count_reached_singleshot_period_gt_maxcount(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(_hw_model.max_count);
@@ -1408,9 +1396,7 @@ void test_app_timer_target_count_reached_singleshot_period_gt_maxcount(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_interrupts_enabled_expect(true);
@@ -1489,9 +1475,7 @@ void test_app_timer_target_count_reached_repeating_period_gt_maxcount(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(_hw_model.max_count);
@@ -1515,9 +1499,7 @@ void test_app_timer_target_count_reached_repeating_period_gt_maxcount(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(_hw_model.max_count);
@@ -1543,12 +1525,7 @@ void test_app_timer_target_count_reached_repeating_period_gt_maxcount(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
-    _set_interrupts_enabled_expect(true);
-
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(0xffff);
@@ -1640,14 +1617,12 @@ void test_app_timer_target_count_reached_singleshot_handler_restarted(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
+    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _units_to_timer_counts_expect(1000u);
-
-    _set_interrupts_enabled_expect(false);
     _set_interrupts_enabled_expect(true);
-    _set_interrupts_enabled_expect(false);
+
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(1000u);
@@ -1670,14 +1645,12 @@ void test_app_timer_target_count_reached_singleshot_handler_restarted(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
+    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _units_to_timer_counts_expect(1000u);
-
-    _set_interrupts_enabled_expect(false);
     _set_interrupts_enabled_expect(true);
-    _set_interrupts_enabled_expect(false);
+
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(1000u);
@@ -1784,11 +1757,7 @@ void test_app_timer_target_count_reached_multi_repeating_diff_expiries(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
-    _set_interrupts_enabled_expect(true);
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(200u);
@@ -1817,11 +1786,7 @@ void test_app_timer_target_count_reached_multi_repeating_diff_expiries(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
-    _set_interrupts_enabled_expect(true);
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(100u);
@@ -1850,11 +1815,7 @@ void test_app_timer_target_count_reached_multi_repeating_diff_expiries(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
-    _set_interrupts_enabled_expect(true);
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(700u);
@@ -1974,11 +1935,7 @@ void test_app_timer_target_count_reached_repeating_inactive_when_stopped(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
-    _set_interrupts_enabled_expect(true);
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(200u);
@@ -2004,11 +1961,7 @@ void test_app_timer_target_count_reached_repeating_inactive_when_stopped(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
-    _set_interrupts_enabled_expect(true);
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(800u);
@@ -2038,11 +1991,7 @@ void test_app_timer_target_count_reached_repeating_inactive_when_stopped(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
-    _set_interrupts_enabled_expect(true);
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(400u);
@@ -2068,11 +2017,7 @@ void test_app_timer_target_count_reached_repeating_inactive_when_stopped(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
-    _set_interrupts_enabled_expect(true);
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(600u);
@@ -2159,14 +2104,12 @@ void test_app_timer_target_count_reached_repeating_handler_restarted(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
+    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _units_to_timer_counts_expect(1000u);
-
-    _set_interrupts_enabled_expect(false);
     _set_interrupts_enabled_expect(true);
-    _set_interrupts_enabled_expect(false);
+
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(1000u);
@@ -2189,14 +2132,12 @@ void test_app_timer_target_count_reached_repeating_handler_restarted(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
+    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _units_to_timer_counts_expect(1000u);
-
-    _set_interrupts_enabled_expect(false);
     _set_interrupts_enabled_expect(true);
-    _set_interrupts_enabled_expect(false);
+
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(1000u);
@@ -2472,7 +2413,7 @@ void test_app_timer_stop_single_shot_hwcounter_only_stopped_on_last(void)
 
 
 // Tests that app_timer_stop correctly reconfigures the HW counter for the new head timer,
-// when the head timer is removed and more timers are active (single-shot).
+// when the head timer is removed and more timers are active (repeating).
 void test_app_timer_stop_repeating_reconfig_for_new_head(void)
 {
     app_timer_t t1, t2;
@@ -2565,12 +2506,7 @@ void test_app_timer_stop_repeating_reconfig_for_new_head(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
-    _set_interrupts_enabled_expect(true);
-
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_timer_period_counts_expect(1444u);
@@ -2612,7 +2548,7 @@ void test_app_timer_stop_repeating_reconfig_for_new_head(void)
 
 
 // Tests that app_timer_stop correctly reconfigures the HW counter for the new head timer,
-// when the head timer is removed and more timers are active (single shot timers).
+// when the head timer is removed and more timers are active (single shot).
 void test_app_timer_stop_single_shot_reconfig_for_new_head(void)
 {
     app_timer_t t1, t2;
@@ -2705,9 +2641,7 @@ void test_app_timer_stop_single_shot_reconfig_for_new_head(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_interrupts_enabled_expect(true);
@@ -2814,9 +2748,7 @@ void test_app_timer_target_count_context_matches_expected(void)
     _set_timer_period_counts_expect(_hw_model.max_count);
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
-    _set_interrupts_enabled_expect(true);
 
-    _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
     _set_interrupts_enabled_expect(true);
