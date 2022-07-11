@@ -52,6 +52,21 @@ Build options
 There are several preprocessor symbols you can define to change various things at compile time.
 The following sections provide some details about those options.
 
+Enable interrupts when running timer callbacks
+==============================================
+
+``app_timer_target_count_reached`` disables interrupts via the hardware model ``set_interrupt_enabled``
+function, in order to protect access to the timer hardware and the list of active timers. By default,
+interrupts will be disabled the entire time that ``app_timer_target_count_reached`` is executing,
+including when timer handler functions are being invoked. If you need interrupts to be functional
+when your timer handler function runs, you can define the following option;
+
++---------------------------------------------+---------------------------------------------------------------------------------------------+
+| **Symbol name**                             | **What you get if you define this symbol**                                                  |
++=============================================+=============================================================================================+
+| ``APP_TIMER_ENABLE_INTERRUPTS_FOR_HANDLER`` | ``app_timer_target_count_reached`` will re-enable interrupts to run timer handler functions |
++---------------------------------------------+---------------------------------------------------------------------------------------------+
+
 Datatype used for app_timer_period_t
 ====================================
 
