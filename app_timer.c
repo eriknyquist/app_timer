@@ -40,6 +40,7 @@ extern "C" {
 #define FLAGS_TYPE_POS  (0x2u)
 
 
+
 /**
  * Represents a doubly-linked list of app_timer_t instances
  */
@@ -55,8 +56,9 @@ typedef struct
  */
 typedef enum
 {
-    TIMER_STATE_IDLE = 0,  ///< Timer is inactive, no expirations scheduled
-    TIMER_STATE_ACTIVE,    ///< Timer is active, expiration scheduled
+    TIMER_STATE_STOPPED = 0,  ///< Timer has not yet started, or was stopped by app_timer_stop
+    TIMER_STATE_EXPIRED,      ///< Timer was started and has since expired
+    TIMER_STATE_ACTIVE,       ///< Timer is active (expiration scheduled)
 } _timer_state_e;
 
 
@@ -299,8 +301,9 @@ void app_timer_target_count_reached(void)
         // Unlink timer from active list
         _remove_timer_from_list(&_active_timers, curr);
 
-        // Clear state bits to set timer state to idle
+        // Clear state bits, set timer state to expired
         curr->flags &= ~FLAGS_STATE_MASK;
+        curr->flags |= (TIMER_STATE_EXPIRED << FLAGS_STATE_POS);
 
         // Run the handler
         if (NULL != curr->handler)
@@ -323,9 +326,9 @@ void app_timer_target_count_reached(void)
         // Extract timer state from flags var
         _timer_state_e state = (_timer_state_e) ((curr->flags & FLAGS_STATE_MASK) >> FLAGS_STATE_POS);
 
-        if ((APP_TIMER_TYPE_REPEATING == type) && (TIMER_STATE_ACTIVE != state))
+        if ((APP_TIMER_TYPE_REPEATING == type) && (TIMER_STATE_EXPIRED == state))
         {
-            /* Timer is repeating, and was not-restarted by the handler,
+            /* Timer is repeating, and was not-restarted or stopped by the handler,
              * so must be re-inserted with a new start time */
             curr->start_counts = now;
             _insert_active_timer(curr);
@@ -504,38 +507,41 @@ app_timer_error_e app_timer_stop(app_timer_t *timer)
     // Read timer state
     _timer_state_e state = (_timer_state_e) ((timer->flags & FLAGS_STATE_MASK) >> FLAGS_STATE_POS);
 
-    if (TIMER_STATE_ACTIVE == state)
+    if ((TIMER_STATE_ACTIVE == state) || (TIMER_STATE_EXPIRED == state))
     {
         // Remove from active timers list
         bool head_removed  = (_active_timers.head == timer);
         _remove_timer_from_list(&_active_timers, timer);
 
-        // Clear state bits to set timer state to idle
+        // Clear state bits to set timer state to stopped
         timer->flags &= ~FLAGS_STATE_MASK;
 
-        if (NULL == _active_timers.head)
+        // Don't want to touch the hardware if called from app_timer_target_count_reached
+        if (!_inside_target_count_reached)
         {
-            // If this was the only active timer, stop the counter
-            _hw_model->set_timer_running(false);
-            _running_timer_count = 0u;
+            if (NULL == _active_timers.head)
+            {
+                // If this was the only active timer, stop the counter
+                _hw_model->set_timer_running(false);
+                _running_timer_count = 0u;
+            }
+            else if (head_removed)
+            {
+                /* Head timer removed, and there are more active timers. Need to update
+                 * _running_timer_count and re-configure counter (unless we're being called
+                 * from inside app_timer_target_count_reached, which will re-config the counter
+                 * as needed when it finishes). */
+                _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
+                _hw_model->set_timer_running(false);
+                _configure_timer(_ticks_until_expiry(_running_timer_count, _active_timers.head));
+                _hw_model->set_timer_running(true);
+                _counts_after_last_start = _hw_model->read_timer_counts();
+            }
+            else
+            {
+                ; // Nothing to do if removed timer wasn't the head, or if inside target_count_reached
+            }
         }
-        else if (head_removed && !_inside_target_count_reached)
-        {
-            /* Head timer removed, and there are more active timers. Need to update
-             * _running_timer_count and re-configure counter (unless we're being called
-             * from inside app_timer_target_count_reached, which will re-config the counter
-             * as needed when it finishes). */
-            _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
-            _hw_model->set_timer_running(false);
-            _configure_timer(_ticks_until_expiry(_running_timer_count, _active_timers.head));
-            _hw_model->set_timer_running(true);
-            _counts_after_last_start = _hw_model->read_timer_counts();
-        }
-        else
-        {
-            ; // Nothing to do if removed timer wasn't the head, or if inside target_count_reached
-        }
-
     }
 
     _hw_model->set_interrupts_enabled(true, &int_status);
@@ -559,8 +565,11 @@ app_timer_error_e app_timer_is_active(app_timer_t *timer, bool *is_active)
         return APP_TIMER_NULL_PARAM;
     }
 
-    // Report true if timer is in active or pending states
-    *is_active = ((timer->flags & FLAGS_STATE_MASK) > 0u);
+    // Read timer state
+    _timer_state_e state = (_timer_state_e) ((timer->flags & FLAGS_STATE_MASK) >> FLAGS_STATE_POS);
+
+    // Report true if timer is in active state
+    *is_active = (TIMER_STATE_ACTIVE == state);
 
     return APP_TIMER_OK;
 }
