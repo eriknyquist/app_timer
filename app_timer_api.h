@@ -30,6 +30,10 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 
+
+#define APP_TIMER_VERSION "v0.9.0"
+
+
 /**
  * Defines the datatype used to represent the period for a timer (e.g. the
  * 'time_from_now' parameter passed to app_timer_start)
