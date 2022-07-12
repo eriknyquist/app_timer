@@ -382,6 +382,9 @@ int main(int argc, char *argv[])
 
     period_ms = REPEAT_PERIOD_START_MS;
 
+    // Index of the middle point of all repeating timers
+    uint32_t repeat_timers_half = NUM_SINGLE_TIMERS + ((NUM_TEST_TIMERS - NUM_SINGLE_TIMERS) / 2u);
+
     // Initialize all repeating timer instances
     for (uint32_t i = NUM_SINGLE_TIMERS; i < NUM_TEST_TIMERS; i++)
     {
@@ -392,7 +395,12 @@ int main(int argc, char *argv[])
         _test_timers[i].lowest_diff_us = 0LL;
         _test_timers[i].expirations = 0UL;
 
-        err = app_timer_create(&_test_timers[i].timer, &_repeat_timer_callback, APP_TIMER_TYPE_REPEATING);
+        /* Half of the repeating timers will have a callback that does not restart itself,
+         * and the other half will have a callback that does restart itself. Restarting a repeating
+         * timer in the handler should not break anything. */
+        app_timer_handler_t handler = (i >= repeat_timers_half) ? _repeat_timer_callback : _single_timer_callback;
+
+        err = app_timer_create(&_test_timers[i].timer, handler, APP_TIMER_TYPE_REPEATING);
         if (APP_TIMER_OK != err)
         {
             _log("app_timer_create failed, err: 0x%x", err);
