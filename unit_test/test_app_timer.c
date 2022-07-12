@@ -2577,10 +2577,6 @@ void test_app_timer_create_single_to_repeating_in_handler(void)
     app_timer_count_t old_max_count = _hw_model.max_count;
     _hw_model.max_count =  0xffff;
 
-    // Restore valid values
-    _cleanup_mock_funcs(&_hw_model, &saved_model);
-    _hw_model.max_count = old_max_count;
-
     // Expectations for app_timer_start
     _read_timer_counts_retval = 0u;
     _read_timer_counts_expect();
@@ -2697,6 +2693,11 @@ void test_app_timer_create_single_to_repeating_in_handler(void)
     // verify timer is inactive
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&_changetype_timer, &active));
     TEST_ASSERT_FALSE(active);
+
+    // Restore valid values
+    _cleanup_mock_funcs(&_hw_model, &saved_model);
+    _hw_model.max_count = old_max_count;
+
 }
 
 static bool _single_callback2_called = false;
@@ -2734,10 +2735,6 @@ void test_app_timer_create_repeating_to_single_in_handler(void)
     _setup_mock_funcs(&_hw_model, &saved_model);
     app_timer_count_t old_max_count = _hw_model.max_count;
     _hw_model.max_count =  0xffff;
-
-    // Restore valid values
-    _cleanup_mock_funcs(&_hw_model, &saved_model);
-    _hw_model.max_count = old_max_count;
 
     // Expectations for app_timer_start
     _read_timer_counts_retval = 0u;
@@ -2875,6 +2872,138 @@ void test_app_timer_create_repeating_to_single_in_handler(void)
     // verify timer is inactive
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&_changetype_timer, &active));
     TEST_ASSERT_FALSE(active);
+
+    // Restore valid values
+    _cleanup_mock_funcs(&_hw_model, &saved_model);
+    _hw_model.max_count = old_max_count;
+
+}
+
+
+static app_timer_t _stop_timer;
+static bool _stop_timer_callback_called = false;
+
+static void _stop_timer_callback(void *context)
+{
+    static uint32_t repeats = 0u;
+
+    if (repeats++ == 2u)
+    {
+        // Stop the timer after 2 repeats
+        TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&_stop_timer));
+    }
+
+    _stop_timer_callback_called = true;
+}
+
+
+// Tests that a repeating timer can be stopped via app_timer_stop inside the handler
+void test_app_timer_stop_repeating_inside_handler(void)
+{
+    app_timer_hw_model_t saved_model;
+    _setup_mock_funcs(&_hw_model, &saved_model);
+    app_timer_count_t old_max_count = _hw_model.max_count;
+    _hw_model.max_count =  0xffff;
+
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&_stop_timer, _stop_timer_callback, APP_TIMER_TYPE_REPEATING));
+
+    // Expectations for app_timer_start
+    _read_timer_counts_retval = 0u;
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _units_to_timer_counts_expect(200u);
+    _units_to_timer_counts_retval = 200u;
+    _set_timer_period_counts_expect(200u);
+    _set_timer_running_expect(true);
+    _set_interrupts_enabled_expect(true);
+
+    // Starting  repeating timer
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_start(&_stop_timer, 200u, NULL));
+
+    // verify timer is active now
+    bool active;
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&_stop_timer, &active));
+    TEST_ASSERT_TRUE(active);
+
+    // Expectations for first app_timer_target_count_reached call
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(_hw_model.max_count);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
+
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(200u);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(true);
+
+    app_timer_target_count_reached();
+
+    // Verify timer is still active
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&_stop_timer, &active));
+    TEST_ASSERT_TRUE(active);
+
+    // Verify callback has run
+    TEST_ASSERT_TRUE(_stop_timer_callback_called);
+
+    _stop_timer_callback_called = false;
+
+    // Expectations for second app_timer_target_count_reached call
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(_hw_model.max_count);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
+
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(200u);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(true);
+
+    app_timer_target_count_reached();
+
+    // Verify timer is still active
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&_stop_timer, &active));
+    TEST_ASSERT_TRUE(active);
+
+    // Verify callback has run
+    TEST_ASSERT_TRUE(_stop_timer_callback_called);
+
+    _stop_timer_callback_called = false;
+
+    // Expectations for final app_timer_target_count_reached call
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(_hw_model.max_count);
+    _set_timer_running_expect(true);
+    _read_timer_counts_expect();
+
+    _set_interrupts_enabled_expect(false);
+    _set_interrupts_enabled_expect(true);
+
+    // Counter should be disabled this time, since no more active timers
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_interrupts_enabled_expect(true);
+
+    // Third and final simulated counter overflow/reset
+    app_timer_target_count_reached();
+
+    // verify timer is inactive
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&_stop_timer, &active));
+    TEST_ASSERT_FALSE(active);
+
+    // Verify callback has run
+    TEST_ASSERT_TRUE(_stop_timer_callback_called);
+
+    // Restore valid values
+    _cleanup_mock_funcs(&_hw_model, &saved_model);
+    _hw_model.max_count = old_max_count;
 }
 
 
@@ -2928,6 +3057,7 @@ int main(void)
     RUN_TEST(test_app_timer_target_count_context_matches_expected);
     RUN_TEST(test_app_timer_create_single_to_repeating_in_handler);
     RUN_TEST(test_app_timer_create_repeating_to_single_in_handler);
+    RUN_TEST(test_app_timer_stop_repeating_inside_handler);
 
     return UNITY_END();
 }
