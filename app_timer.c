@@ -349,6 +349,11 @@ void app_timer_target_count_reached(void)
     {
         // No more active timers, don't re-start the counter
         _running_timer_count = 0u;
+#ifdef APP_TIMER_RECONFIG_WITHOUT_STOPPING
+        /* If we didn't already stop the counter to set a new timer period,
+         * and there are no more active timers, then we should stop the counter now */
+        _hw_model->set_timer_running(false);
+#endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
     }
     else
     {
@@ -480,10 +485,18 @@ app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_fr
         }
 
 #ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
+        // We should stop the counter before re-configuring it
         _hw_model->set_timer_running(false);
 #endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
         _configure_timer(timer->total_counts);
-#ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
+#ifdef APP_TIMER_RECONFIG_WITHOUT_STOPPING
+        /* Since we're not stopping/restarting the counter with each timer period,
+         * we may need to start the counter if this is the only active timer */
+        if (only_timer)
+        {
+            _hw_model->set_timer_running(true);
+        }
+#else
         _hw_model->set_timer_running(true);
 #endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
         _counts_after_last_start = _hw_model->read_timer_counts();
