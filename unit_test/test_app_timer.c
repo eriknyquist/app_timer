@@ -204,9 +204,24 @@ typedef struct
     uint32_t pos;
 } read_timer_counts_stack_t;
 
-static app_timer_count_t _read_timer_counts_retval = 0u;
+#define READ_TIMER_COUNTS_RET_COUNT (16u)
+
+app_timer_count_t _read_timer_counts_retvals[READ_TIMER_COUNTS_RET_COUNT];
+
+uint32_t _read_timer_counts_retvals_count = 0u;
 
 static read_timer_counts_stack_t _read_timer_counts_stack = {.count=0u, .pos=0u};
+
+static void _read_timer_counts_add_retval(app_timer_count_t count)
+{
+    if (READ_TIMER_COUNTS_RET_COUNT <= _read_timer_counts_retvals_count)
+    {
+        TEST_FAIL_MESSAGE("Too many return values for _read_timer_counts");
+    }
+
+    _read_timer_counts_retvals[_read_timer_counts_retvals_count++] = count;
+}
+
 
 static app_timer_count_t _mock_read_timer_counts(void)
 {
@@ -217,8 +232,16 @@ static app_timer_count_t _mock_read_timer_counts(void)
     }
 
     _read_timer_counts_stack.pos += 1u;
-    return _read_timer_counts_retval;
+
+    if (0u == _read_timer_counts_retvals_count)
+    {
+        return 0u;
+    }
+
+    app_timer_count_t ret = _read_timer_counts_retvals[--_read_timer_counts_retvals_count];
+    return ret;
 }
+
 
 static void _read_timer_counts_expect(void)
 {
@@ -355,6 +378,11 @@ void checkExpectedCalls(void)
     if (_read_timer_counts_stack.pos != _read_timer_counts_stack.count)
     {
         TEST_FAIL_MESSAGE("hw_model->read_timer_counts called fewer times than expected");
+    }
+
+    if (0u != _read_timer_counts_retvals_count)
+    {
+        TEST_FAIL_MESSAGE("Not all return values used up for hw_model->read_timer_counts");
     }
 }
 
@@ -1159,7 +1187,6 @@ void test_app_timer_target_count_reached_multi_singleshot_same_expiry(void)
     app_timer_hw_model_t saved_model;
     _setup_mock_funcs(&_hw_model, &saved_model);
 
-    _read_timer_counts_retval = 0u;
     _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _set_timer_running_expect(false);
@@ -1251,7 +1278,6 @@ void test_app_timer_target_count_reached_singleshot_period_gt_maxcount(void)
     // Make the timer period long enough to require 5 counter overflows/resets
     app_timer_period_t timer_period = 0xffff * 3u;
 
-    _read_timer_counts_retval = 0u;
     _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _set_timer_running_expect(false);
@@ -1365,7 +1391,6 @@ void test_app_timer_target_count_reached_repeating_period_gt_maxcount(void)
     // Make the timer period long enough to require 5 counter overflows/resets
     app_timer_period_t timer_period = 0xffff * 3u;
 
-    _read_timer_counts_retval = 0u;
     _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _set_timer_running_expect(false);
@@ -1399,8 +1424,6 @@ void test_app_timer_target_count_reached_repeating_period_gt_maxcount(void)
     _set_timer_running_expect(true);
     _read_timer_counts_expect();
     _set_interrupts_enabled_expect(true);
-
-    // First simulated counter overflow/reset
     app_timer_target_count_reached();
 
     // Verify callback not run yet
@@ -2259,7 +2282,7 @@ void test_app_timer_stop_repeating_reconfig_for_new_head(void)
     // Starting timer1
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_start(&t1, 1000u, NULL));
 
-    _read_timer_counts_retval = 0u;
+    _read_timer_counts_add_retval(0u);
     _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _units_to_timer_counts_expect(1444u);
@@ -2280,7 +2303,7 @@ void test_app_timer_stop_repeating_reconfig_for_new_head(void)
     TEST_ASSERT_TRUE(active2);
 
     // Stop timer 1, HW counter should be re-configured for timer2
-    _read_timer_counts_retval = 44; // Simulate 44 ticks having passed since timer start
+    _read_timer_counts_add_retval(44u); // Simulate 44 ticks having passed since timer start
     _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
@@ -2369,7 +2392,7 @@ void test_app_timer_stop_single_shot_reconfig_for_new_head(void)
     TEST_ASSERT_FALSE(_t1_callback_called);
     TEST_ASSERT_FALSE(_t2_callback_called);
 
-    _read_timer_counts_retval = 0u;
+    _read_timer_counts_add_retval(0u);
     _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _set_timer_running_expect(false);
@@ -2402,7 +2425,7 @@ void test_app_timer_stop_single_shot_reconfig_for_new_head(void)
     TEST_ASSERT_TRUE(active2);
 
     // Stop timer 1, HW counter should be re-configured for timer2
-    _read_timer_counts_retval = 44; // Simulate 44 ticks having passed since timer start
+    _read_timer_counts_add_retval(44u); // Simulate 44 ticks having passed since timer start
     _set_interrupts_enabled_expect(false);
     _read_timer_counts_expect();
     _set_timer_running_expect(false);
@@ -2484,7 +2507,6 @@ void test_app_timer_target_count_context_matches_expected(void)
     app_timer_hw_model_t saved_model;
     _setup_mock_funcs(&_hw_model, &saved_model);
 
-    _read_timer_counts_retval = 0u;
     _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _set_timer_running_expect(false);
@@ -2578,7 +2600,6 @@ void test_app_timer_create_single_to_repeating_in_handler(void)
     _hw_model.max_count =  0xffff;
 
     // Expectations for app_timer_start
-    _read_timer_counts_retval = 0u;
     _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _set_timer_running_expect(false);
@@ -2737,7 +2758,6 @@ void test_app_timer_create_repeating_to_single_in_handler(void)
     _hw_model.max_count =  0xffff;
 
     // Expectations for app_timer_start
-    _read_timer_counts_retval = 0u;
     _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _set_timer_running_expect(false);
@@ -2908,7 +2928,6 @@ void test_app_timer_stop_repeating_inside_handler(void)
     TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_create(&_stop_timer, _stop_timer_callback, APP_TIMER_TYPE_REPEATING));
 
     // Expectations for app_timer_start
-    _read_timer_counts_retval = 0u;
     _read_timer_counts_expect();
     _set_interrupts_enabled_expect(false);
     _set_timer_running_expect(false);
@@ -3007,6 +3026,174 @@ void test_app_timer_stop_repeating_inside_handler(void)
 }
 
 
+// Tests that app_timer_target_count_reached compensates for handler execution time, repeating timer
+void test_app_timer_target_count_repeating_reached_compensate_handler_runtime(void)
+{
+    bool active;
+    app_timer_t t1;
+
+    _t1_callback_called = false;
+
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK,
+        app_timer_create(&t1, _t1_callback, APP_TIMER_TYPE_REPEATING));
+
+    app_timer_hw_model_t saved_model;
+    app_timer_count_t old_max_count = _hw_model.max_count;
+    _hw_model.max_count =  0xffff;
+    _setup_mock_funcs(&_hw_model, &saved_model);
+
+    _read_timer_counts_add_retval(0u);
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _units_to_timer_counts_expect(1000u);
+    _units_to_timer_counts_retval = 1000u;
+    _set_timer_period_counts_expect(1000u);
+    _set_timer_running_expect(true);
+    _set_interrupts_enabled_expect(true);
+
+    // Starting timer
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_start(&t1, 1000u, NULL));
+
+    // Verify callback not run yet
+    TEST_ASSERT_FALSE(_t1_callback_called);
+
+    // Verify all timers are active
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t1, &active));
+    TEST_ASSERT_TRUE(active);
+
+    // Expectations for app_timer_target_count_reached call
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(_hw_model.max_count);
+    _set_timer_running_expect(true);
+    _read_timer_counts_add_retval(0u);
+    _read_timer_counts_expect();
+
+    _read_timer_counts_add_retval(250u);
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(750u);
+    _set_timer_running_expect(true);
+    _read_timer_counts_add_retval(0u);
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(true);
+
+    app_timer_target_count_reached();
+
+    // Expectations for 2nd app_timer_target_count_reached call
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(_hw_model.max_count);
+    _set_timer_running_expect(true);
+    _read_timer_counts_add_retval(0u);
+    _read_timer_counts_expect();
+
+    _read_timer_counts_add_retval(333u);
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(667u);
+    _set_timer_running_expect(true);
+    _read_timer_counts_add_retval(0u);
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(true);
+
+    app_timer_target_count_reached();
+
+    // Verify callback was run
+    TEST_ASSERT_TRUE(_t1_callback_called);
+
+    // Stop the timer
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_interrupts_enabled_expect(true);
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&t1));
+
+    // Verify timer is inactive
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t1, &active));
+    TEST_ASSERT_FALSE(active);
+
+    // Restore valid values
+    _cleanup_mock_funcs(&_hw_model, &saved_model);
+    _hw_model.max_count = old_max_count;
+}
+
+
+// Tests that app_timer_target_count_reached handles the case where handler execution takes
+// longe than hw_model->max_count
+void test_app_timer_target_count_repeating_handler_runtime_gt_maxcount(void)
+{
+    bool active;
+    app_timer_t t1;
+
+    _t1_callback_called = false;
+
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK,
+        app_timer_create(&t1, _t1_callback, APP_TIMER_TYPE_REPEATING));
+
+    app_timer_hw_model_t saved_model;
+    app_timer_count_t old_max_count = _hw_model.max_count;
+    _hw_model.max_count =  0xffff;
+    _setup_mock_funcs(&_hw_model, &saved_model);
+
+    _read_timer_counts_add_retval(0u);
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _units_to_timer_counts_expect(1000u);
+    _units_to_timer_counts_retval = 1000u;
+    _set_timer_period_counts_expect(1000u);
+    _set_timer_running_expect(true);
+    _set_interrupts_enabled_expect(true);
+
+    // Starting timer
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_start(&t1, 1000u, NULL));
+
+    // Verify callback not run yet
+    TEST_ASSERT_FALSE(_t1_callback_called);
+
+    // Verify all timers are active
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t1, &active));
+    TEST_ASSERT_TRUE(active);
+
+    // Expectations for app_timer_target_count_reached call
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(_hw_model.max_count);
+    _set_timer_running_expect(true);
+    _read_timer_counts_add_retval(0u);
+    _read_timer_counts_expect();
+
+    _read_timer_counts_add_retval(0xffffu);
+    _read_timer_counts_expect();
+    _set_timer_running_expect(false);
+    _set_timer_period_counts_expect(1u);
+    _set_timer_running_expect(true);
+    _read_timer_counts_add_retval(0u);
+    _read_timer_counts_expect();
+    _set_interrupts_enabled_expect(true);
+
+    app_timer_target_count_reached();
+
+    // Verify callback was run
+    TEST_ASSERT_TRUE(_t1_callback_called);
+
+    // Stop the timer
+    _set_interrupts_enabled_expect(false);
+    _set_timer_running_expect(false);
+    _set_interrupts_enabled_expect(true);
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_stop(&t1));
+
+    // Verify timer is inactive
+    TEST_ASSERT_EQUAL_INT(APP_TIMER_OK, app_timer_is_active(&t1, &active));
+    TEST_ASSERT_FALSE(active);
+
+    // Restore valid values
+    _cleanup_mock_funcs(&_hw_model, &saved_model);
+    _hw_model.max_count = old_max_count;
+}
+
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -3058,6 +3245,8 @@ int main(void)
     RUN_TEST(test_app_timer_create_single_to_repeating_in_handler);
     RUN_TEST(test_app_timer_create_repeating_to_single_in_handler);
     RUN_TEST(test_app_timer_stop_repeating_inside_handler);
+    RUN_TEST(test_app_timer_target_count_repeating_reached_compensate_handler_runtime);
+    RUN_TEST(test_app_timer_target_count_repeating_handler_runtime_gt_maxcount);
 
     return UNITY_END();
 }
