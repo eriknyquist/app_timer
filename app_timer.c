@@ -40,7 +40,6 @@ extern "C" {
 #define FLAGS_TYPE_POS  (0x2u)
 
 
-
 /**
  * Represents a doubly-linked list of app_timer_t instances
  */
@@ -288,9 +287,13 @@ void app_timer_target_count_reached(void)
     app_timer_running_count_t now = _running_timer_count;
 
     // Stop the timer counter, re-start it to time how long it takes to handle all expired timers
+#ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
     _hw_model->set_timer_running(false);
+#endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
     _configure_timer(_hw_model->max_count);
+#ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
     _hw_model->set_timer_running(true);
+#endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
     _counts_after_last_start = _hw_model->read_timer_counts();
 
     // Remove all expired timers from the active list, and run their handlers
@@ -338,7 +341,9 @@ void app_timer_target_count_reached(void)
     // Update running timer count with time taken to run expired handlers
     _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
     now = _running_timer_count;
+#ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
     _hw_model->set_timer_running(false);
+#endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
 
     if (NULL == _active_timers.head)
     {
@@ -356,7 +361,9 @@ void app_timer_target_count_reached(void)
          * that the head timer will expire at least 1 tick late) */
         _configure_timer((ticks_until_expiry == 0u) ? 1u : ticks_until_expiry);
 
+#ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
         _hw_model->set_timer_running(true);
+#endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
         _counts_after_last_start = _hw_model->read_timer_counts();
     }
 
@@ -472,9 +479,13 @@ app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_fr
             _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
         }
 
+#ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
         _hw_model->set_timer_running(false);
+#endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
         _configure_timer(timer->total_counts);
+#ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
         _hw_model->set_timer_running(true);
+#endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
         _counts_after_last_start = _hw_model->read_timer_counts();
     }
 
@@ -532,9 +543,13 @@ app_timer_error_e app_timer_stop(app_timer_t *timer)
                  * from inside app_timer_target_count_reached, which will re-config the counter
                  * as needed when it finishes). */
                 _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
+#ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
                 _hw_model->set_timer_running(false);
+#endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
                 _configure_timer(_ticks_until_expiry(_running_timer_count, _active_timers.head));
+#ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
                 _hw_model->set_timer_running(true);
+#endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
                 _counts_after_last_start = _hw_model->read_timer_counts();
             }
             else

@@ -52,6 +52,28 @@ Build options
 There are several preprocessor symbols you can define to change various things at compile time.
 The following sections provide some details about those options.
 
+Re-configure counter without stopping & restarting it
+=====================================================
+
+The default behaviour is to always stop the counter before setting a new period via
+``hw_model->set_timer_period_counts``, and then re-start the counter, like so:
+
+::
+
+    hw_model->set_timer_running(false);
+    hw_model->set_timer_period_counts(new_timer_period);
+    hw_model->set_timer_running(true);
+
+Alternatively, if you want the counter to be re-configured for a new period without
+stopping and starting, such that ``hw_model->set_timer_running(false)`` will only be called
+to stop the counter in the event that there are no active timers, you can define the following option;
+
++---------------------------------------------+----------------------------------------------------------------------------------------------------------+
+| **Symbol name**                             | **What you get if you define this symbol**                                                               |
++=============================================+==========================================================================================================+
+| ``APP_TIMER_RECONFIG_WITHOUT_STOPPING``     | Counter will not be stopped before setting a new timer period with ``hw_model->set_timer_period_counts`` |
++---------------------------------------------+----------------------------------------------------------------------------------------------------------+
+
 Enable interrupts when running timer callbacks
 ==============================================
 
