@@ -49,22 +49,12 @@ static app_timer_count_t _read_timer_counts(void)
 static void _set_timer_period_counts(app_timer_count_t counts)
 {
     _last_timer_counts = counts;
+    _last_timer_usecs = (app_timer_running_count_t) timing_usecs_elapsed();
 }
 
 
 static void _set_timer_running(bool enabled)
 {
-    if (_running == enabled)
-    {
-        // Nothing to do
-        return;
-    }
-
-    if (enabled)
-    {
-        _last_timer_usecs = (app_timer_running_count_t) timing_usecs_elapsed();
-    }
-
     _running = enabled;
 }
 
