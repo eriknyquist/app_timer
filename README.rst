@@ -73,6 +73,20 @@ Build options
 There are several preprocessor symbols you can define to change various things at compile time.
 The following sections provide some details about those options.
 
+Enable app_timer_stats function
+===============================
+
+Enables various runtime information to be collected via the ``app_timer_stats`` function.
+See ``app_timer_stats_t`` struct definition in ``app_timer_api.h`` for more details.
+
+Disabled by default.
+
++----------------------------+------------------------- ----------------------------------+
+| **Symbol name**            | **What you get if you define this symbol**                 |
++============================+============================================================+
+| ``APP_TIMER_STATS_ENABLE`` | Runtime info collection via ``app_timer_stats`` is enabled |
++----------------------------+------------------------------------------------------------+
+
 Re-configure counter without stopping & restarting it
 =====================================================
 

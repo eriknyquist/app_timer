@@ -48,6 +48,19 @@ extern "C" {
 #define FLAGS_TYPE_POS  (0x2u)
 
 
+#ifdef APP_TIMER_STATS_ENABLE
+static app_timer_stats_t _stats =
+{
+    .num_timers=0u,
+    .num_timers_high_watermark=0u,
+    .num_expiry_overflows=0u,
+    .next_active_timer=NULL,
+    .running_timer_count=0u,
+    .inside_target_count_reached=false
+};
+#endif // APP_TIMER_STATS_ENABLE
+
+
 /**
  * Represents a doubly-linked list of app_timer_t instances
  */
@@ -146,6 +159,15 @@ static void _insert_active_timer(app_timer_t *timer)
     // Set timer state to active
     timer->flags &= ~FLAGS_STATE_MASK;
     timer->flags |= (TIMER_STATE_ACTIVE << FLAGS_STATE_POS);
+
+#ifdef APP_TIMER_STATS_ENABLE
+    _stats.num_timers += 1u;
+
+    if (_stats.num_timers_high_watermark < _stats.num_timers)
+    {
+        _stats.num_timers_high_watermark = _stats.num_timers;
+    }
+#endif // APP_TIMER_STATS_ENABLE
 
     if (NULL == _active_timers.head)
     {
@@ -312,6 +334,10 @@ void app_timer_target_count_reached(void)
         // Unlink timer from active list
         _remove_timer_from_list(&_active_timers, curr);
 
+#ifdef APP_TIMER_STATS_ENABLE
+        _stats.num_timers -= 1u;
+#endif // APP_TIMER_STATS_ENABLE
+
         // Clear state bits, set timer state to expired
         curr->flags &= ~FLAGS_STATE_MASK;
         curr->flags |= (TIMER_STATE_EXPIRED << FLAGS_STATE_POS);
@@ -372,7 +398,11 @@ void app_timer_target_count_reached(void)
          * other expired timers in the loop above), just configure the hardware for 1 tick,
          * and the head timer will be handled in the next call (although it does have the downside
          * that the head timer will expire at least 1 tick late) */
-        _configure_timer((ticks_until_expiry == 0u) ? 1u : ticks_until_expiry);
+        bool expiry_overflow = (ticks_until_expiry == 0u);
+        _configure_timer(expiry_overflow ? 1u : ticks_until_expiry);
+#ifdef APP_TIMER_STATS_ENABLE
+        _stats.num_expiry_overflows += (uint32_t) expiry_overflow;
+#endif // APP_TIMER_STATS_ENABLE
 
 #ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
         _hw_model->set_timer_running(true);
@@ -545,6 +575,10 @@ app_timer_error_e app_timer_stop(app_timer_t *timer)
         bool head_removed  = (_active_timers.head == timer);
         _remove_timer_from_list(&_active_timers, timer);
 
+#ifdef APP_TIMER_STATS_ENABLE
+        _stats.num_timers -= 1u;
+#endif // APP_TIMER_STATS_ENABLE
+
         // Clear state bits to set timer state to stopped
         timer->flags &= ~FLAGS_STATE_MASK;
 
@@ -592,7 +626,7 @@ app_timer_error_e app_timer_is_active(app_timer_t *timer, bool *is_active)
 {
     if (!_initialized)
     {
-        // Already initialized
+        // Not initialized
         return APP_TIMER_INVALID_STATE;
     }
 
@@ -609,6 +643,34 @@ app_timer_error_e app_timer_is_active(app_timer_t *timer, bool *is_active)
 
     return APP_TIMER_OK;
 }
+
+
+#ifdef APP_TIMER_STATS_ENABLE
+/**
+ * @see app_timer_api.h
+ */
+app_timer_error_e app_timer_stats(app_timer_stats_t *stats)
+{
+    if (!_initialized)
+    {
+        // Not initialized
+        return APP_TIMER_INVALID_STATE;
+    }
+
+    if (NULL == stats)
+    {
+        return APP_TIMER_NULL_PARAM;
+    }
+
+    _stats.running_timer_count = _running_timer_count;
+    _stats.inside_target_count_reached = _inside_target_count_reached;
+    _stats.next_active_timer = _active_timers.head;
+
+    *stats = _stats;
+
+    return APP_TIMER_OK;
+}
+#endif // APP_TIMER_STATS_ENABLE
 
 
 /**

@@ -269,6 +269,22 @@ typedef struct
 } app_timer_hw_model_t;
 
 
+#ifdef APP_TIMER_STATS_ENABLE
+/**
+ * Holds information that can be collected about the current state of app_timer module
+ */
+typedef struct
+{
+    uint32_t num_timers;                            ///< Number of active timers currently
+    uint32_t num_timers_high_watermark;             ///< Max. number of active timers seen at once
+    uint32_t num_expiry_overflows;                  ///< Number of times a timer expired while handling other timers
+    app_timer_t *next_active_timer;                 ///< Active timer instance that will expire next
+    app_timer_running_count_t running_timer_count;  ///< Current _running_timer_count value
+    bool inside_target_count_reached;               ///< True if app_timer_target_count_reached is in progress
+} app_timer_stats_t;
+#endif // APP_TIMER_STATS_ENABLE
+
+
 /**
  * This function must be called whenever the timer/counter period set by the
  * last call to set_timer_period_counts (in the hardware model) has elapsed. For example,
@@ -356,6 +372,17 @@ app_timer_error_e app_timer_is_active(app_timer_t *timer, bool *is_active);
  */
 app_timer_error_e app_timer_init(app_timer_hw_model_t *model);
 
+
+#ifdef APP_TIMER_STATS_ENABLE
+/**
+ * Fetch information about the current state of app_timer
+ *
+ * @param stats    Pointer to location to store result
+ *
+ * @return #APP_TIMER_OK if successful
+ */
+app_timer_error_e app_timer_stats(app_timer_stats_t *stats);
+#endif // APP_TIMER_STATS_ENABLE
 
 #ifdef __cplusplus
 }
