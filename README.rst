@@ -49,15 +49,15 @@ Features / limitations
 Getting started
 ---------------
 
- #. Implement a hardware model for your specific time source, or use one of the samples
-    in ``example_hw_models`` if there is an appropriate one. In this case, we'll use the
-    arduino UNO hardware model, ``arduino_app_timer.c`` and ``arduino_app_timer.h``,
-    for discussion's sake.
+#. Implement a hardware model for your specific time source, or use one of the samples
+   in ``example_hw_models`` if there is an appropriate one. In this case, we'll use the
+   arduino UNO hardware model, ``arduino_app_timer.c`` and ``arduino_app_timer.h``,
+   for discussion's sake.
 
- #. In your application code, ensure that ``app_timer_init`` is being called, and that
-    a pointer to the app_timer_hw_model_t struct for your hardware model is passed in.
-    The arduino hardware model provides a ``arduino_app_timer_init`` function which
-    does exactly this.
+#. In your application code, ensure that ``app_timer_init`` is being called, and that
+   a pointer to the app_timer_hw_model_t struct for your hardware model is passed in.
+   The arduino hardware model provides a ``arduino_app_timer_init`` function which
+   does exactly this.
 
 #. Ensure that ``app_timer.c`` and ``arduino_app_timer.c`` (or whatever hardware model
    you are using, if not arduino) are compiled and linked in along with the rest of your
