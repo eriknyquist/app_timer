@@ -1,12 +1,12 @@
 Hardware-agnostic  application timer layer in C
 ###############################################
 
-This module implements an application timer layer in C, which allows you to
-use a single timer/counter source to drive an arbitrary number of timed events, and provides
+This is an "application timers" implementation in C, allowing you to use a single
+timer/counter source to drive an arbitrary number of timed events. ``app_timer`` provides
 a flexible abstraction for the timer/counter source used to measure time (referred to as
-the "hardware model"). Wether your source of time is a timer interrupt in an embedded system,
-or a read-only monotonic counter that cannot generate interrupts, you can write a hardware
-model that will allow app_timer to work with it.
+the "hardware model"). Whether your source of time is a timer interrupt in an embedded system,
+or a read-only monotonic counter that cannot generate interrupts, or something else entirely,
+you can write a hardware model that will allow app_timer to work with it.
 
 If you are writing C or C++ for an embedded device that has a timer/counter peripheral that can
 be configured to generate an interrupt when a certain count value is reached, and you would
@@ -43,8 +43,29 @@ Features / limitations
 
 - Automatic handling of timer/counter overflow; if you are using a timer/counter, for example, which overflows after
   30 minutes with your specific configuration, and you call ``app_timer_start`` with an expiry time of, say, 72 hours,
-  then the overflow will be handled behind the scenes by the ``app_timer`` module and your timer callback will still
-  only be invoked after 72 hours.
+  then the overflow will be handled behind the scenes by the ``app_timer`` module and your timer handler function will
+  still only be called after 72 hours.
+
+Getting started
+---------------
+
+ #. Implement a hardware model for your specific time source, or use one of the samples
+    in ``example_hw_models`` if there is an appropriate one. In this case, we'll use the
+    arduino UNO hardware model, ``arduino_app_timer.c`` and ``arduino_app_timer.h``,
+    for discussion's sake.
+
+ #. In your application code, ensure that ``app_timer_init`` is being called, and that
+    a pointer to the app_timer_hw_model_t struct for your hardware model is passed in.
+    The arduino hardware model provides a ``arduino_app_timer_init`` function which
+    does exactly this.
+
+#. Ensure that ``app_timer.c`` and ``arduino_app_timer.c`` (or whatever hardware model
+   you are using, if not arduino) are compiled and linked in along with the rest of your
+   application.
+
+#. That's it. Now that ``app_timer`` has been initialized with a hardware model,
+   you can use the functions from ``app_timer_api.h`` in your application code to
+   create and run ``app_timer_t`` instances.
 
 Build options
 -------------
@@ -65,23 +86,23 @@ The default behaviour is to always stop the counter before setting a new period 
     hw_model->set_timer_running(true);
 
 Alternatively, if you want the counter to be re-configured for a new period without
-stopping and starting, such that ``hw_model->set_timer_running(false)`` will only be called
+stopping and re-starting, such that ``hw_model->set_timer_running(false)`` will only be called
 to stop the counter in the event that there are no active timers, you can define the following option;
 
-+---------------------------------------------+----------------------------------------------------------------------------------------------------------+
-| **Symbol name**                             | **What you get if you define this symbol**                                                               |
-+=============================================+==========================================================================================================+
-| ``APP_TIMER_RECONFIG_WITHOUT_STOPPING``     | Counter will not be stopped before setting a new timer period with ``hw_model->set_timer_period_counts`` |
-+---------------------------------------------+----------------------------------------------------------------------------------------------------------+
++---------------------------------------------+--------------------------------------------------------------------------------------------------+
+| **Symbol name**                             | **What you get if you define this symbol**                                                       |
++=============================================+==================================================================================================+
+| ``APP_TIMER_RECONFIG_WITHOUT_STOPPING``     | Counter will not be stopped to set a new timer period with ``hw_model->set_timer_period_counts`` |
++---------------------------------------------+--------------------------------------------------------------------------------------------------+
 
-Enable interrupts when running timer callbacks
-==============================================
+Enable interrupts when running timer handler functions
+======================================================
 
 ``app_timer_target_count_reached`` disables interrupts via the hardware model ``set_interrupt_enabled``
 function, in order to protect access to the timer hardware and the list of active timers. By default,
 interrupts will be disabled the entire time that ``app_timer_target_count_reached`` is executing,
-including when timer handler functions are being invoked. If you need interrupts to be functional
-when your timer handler function runs, you can define the following option;
+including when timer handler functions are called. If you need interrupts to be functional
+when timer handler functions are called, you can define the following option;
 
 +---------------------------------------------+---------------------------------------------------------------------------------------------+
 | **Symbol name**                             | **What you get if you define this symbol**                                                  |
@@ -114,9 +135,8 @@ Datatype used for app_timer_count_t
 ===================================
 
 Determines the datatype used to represent a count value for the underlying hardware counter.
-This should be set to an unsigned fixed-width integer type that is large enough
-to hold the number of bits the counter has. For example, if using a 24-bit counter,
-uint32_t would be sufficient, but not uint16_t.
+This should be set to a type that is large enough to hold the largest hardware counter value.
+For example, if using a 24-bit counter, uint32_t would be sufficient, but not uint16_t.
 
 Define one of the following options;
 
