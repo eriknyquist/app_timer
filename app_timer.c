@@ -1,22 +1,30 @@
 /**
  * @file app_timer.c
- * @author Erik Nyquist
+ *
+ * @author Erik K. Nyquist
  *
  * @brief Implements "application timers", allowing an arbitrary number of timed
  *        events to be driven by a single timer/counter source.
  *
  *        How to use this module;
  *
- *        1. Implement a hardware model (app_timer_hw_model_t) for the specific timer/counter
- *           hardware you wish to use for generating interrupts.
+ *        1. Implement a hardware model for your specific time source, or use one of the samples
+ *           in "example_hw_models" if there is an appropriate one. In this case, we'll use the
+ *           arduino UNO hardware model, "arduino_app_timer.c" and "arduino_app_timer.h",
+ *           for discussion's sake.
  *
- *        2. Ensure "app_timer_target_count_reached" is called in the interrupt handler for the
- *           timer/counter hardware being used.
+ *        2. In your application code, ensure that "app_timer_init" is being called, and that
+ *           a pointer to the app_timer_hw_model_t struct for your hardware model is passed in.
+ *           The arduino hardware model provides a "arduino_app_timer_init" function which
+ *           does exactly this.
  *
- *        3. Call app_timer_init() and pass in a pointer to the hardware model you created.
+ *        3. Ensure that "app_timer.c" and "arduino_app_timer.c" (or whatever hardware model
+ *           you are using, if not arduino) are compiled and linked in along with the rest of your
+ *           application.
  *
- *        4. Now, app_timer_create and app_timer_start can be used to create as
- *           many application timers as needed (see app_timer_api.h).
+ *        4. That's it. Now that "app_timer" has been initialized with a hardware model,
+ *           you can use the functions from "app_timer_api.h" in your application code to
+ *           create and run "app_timer_t" instances.
  */
 
 #ifdef __cplusplus
