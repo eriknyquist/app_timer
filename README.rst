@@ -81,7 +81,7 @@ See ``app_timer_stats_t`` struct definition in ``app_timer_api.h`` for more deta
 
 Disabled by default.
 
-+----------------------------+------------------------- ----------------------------------+
++----------------------------+------------------------------------------------------------+
 | **Symbol name**            | **What you get if you define this symbol**                 |
 +============================+============================================================+
 | ``APP_TIMER_STATS_ENABLE`` | Runtime info collection via ``app_timer_stats`` is enabled |
