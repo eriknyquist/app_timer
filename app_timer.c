@@ -63,9 +63,9 @@ typedef struct
  */
 typedef enum
 {
-    TIMER_STATE_STOPPED = 0,  ///< Timer has not yet started, or was stopped by app_timer_stop
+    TIMER_STATE_STOPPED = 0,  ///< Timer has not yet been started, or was stopped by app_timer_stop
     TIMER_STATE_EXPIRED,      ///< Timer was started and has since expired
-    TIMER_STATE_ACTIVE,       ///< Timer is active (expiration scheduled)
+    TIMER_STATE_ACTIVE,       ///< Timer has been started and not yet expired
 } _timer_state_e;
 
 
