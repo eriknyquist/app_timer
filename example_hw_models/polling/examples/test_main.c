@@ -28,11 +28,11 @@
 #endif // VERBOSE
 
 
-#define TOTAL_TEST_TIME_SECONDS (10 * 60u)   ///< Total runtime for all timers, seconds
+#define TOTAL_TEST_TIME_SECONDS (1 * 60u)   ///< Total runtime for all timers, seconds
 #define TIME_LOG_INTERVAL_SECS  (300u)       ///< How often to log runtime remaining, seconds
 
-#define NUM_SINGLE_TIMERS (128u)             ///< Number of single-shot timers to create (re-started in timer callback)
-#define NUM_REPEAT_TIMERS (128u)             ///< Number of repeating timers to create
+#define NUM_SINGLE_TIMERS (8u)             ///< Number of single-shot timers to create (re-started in timer callback)
+#define NUM_REPEAT_TIMERS (8u)             ///< Number of repeating timers to create
 #define NUM_TEST_TIMERS \
     (NUM_SINGLE_TIMERS + NUM_REPEAT_TIMERS)  ///< Total number of timers
 
@@ -346,8 +346,7 @@ int main(int argc, char *argv[])
 
     // Initialize all single-shot timer instances
     printf("\n");
-    _log("starting microseconds timestamp (uint32): %u\n", (uint32_t) timing_usecs_elapsed());
-
+    uint32_t start_usecs = (uint32_t) timing_usecs_elapsed();
     for (uint32_t i = 0u; i < NUM_SINGLE_TIMERS; i++)
     {
         _test_timers[i].ms = period_ms;
@@ -477,15 +476,25 @@ int main(int argc, char *argv[])
 
     test_results_summary_t results;
 
-    _dump_test_results(&results),
+    _dump_test_results(&results);
+
+    app_timer_stats_t stats;
+    (void) app_timer_stats(&stats);
 
     _log("analysis done\n\n");
     printf("------------ Summary ------------\n\n");
-    printf("ending microseconds timestamp (uint32): %u\n\n", (uint32_t) timing_usecs_elapsed());
+    printf("starting microseconds timestamp (uint32): %u\n", start_usecs);
+    printf("ending microseconds timestamp (uint32)  : %u\n\n", (uint32_t) timing_usecs_elapsed());
     printf("Ran %u timers at once (%u single-shot and %u repeating), all with different\n",
            NUM_TEST_TIMERS, NUM_SINGLE_TIMERS, NUM_REPEAT_TIMERS);
     printf("periods between %u-%u milliseconds, for %u seconds total.\n\n",
            lowest_period_ms, highest_period_ms, TOTAL_TEST_TIME_SECONDS);
+
+    printf("Active timers high watermark:\n");
+    printf("- %u\n\n", stats.num_timers_high_watermark);
+
+    printf("Expiry overflows in app_timer_target_count_reached:\n");
+    printf("- %u\n\n", stats.num_expiry_overflows);
 
     printf("No. of timers that differ from expected expiration counts by 1:\n");
     printf("- %"PRIu64"\n\n", results.expirations_plus1_count);
