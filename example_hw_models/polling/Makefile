@@ -30,7 +30,14 @@ TEST_OBJ_FILES := $(patsubst %.c,%.o,$(addprefix $(OBJ_DIR)/,$(notdir $(TEST_SRC
 EXAMPLE_OBJ_FILES := $(patsubst %.c,%.o,$(addprefix $(OBJ_DIR)/,$(notdir $(EXAMPLE_SRC_FILES))))
 
 INCLUDES := $(addprefix -I, $(SRC_DIRS))
-FLAGS := -std=c99 -Wall -DAPP_TIMER_RUNNING_COUNT_UINT64 -DAPP_TIMER_COUNT_UINT32 -DAPP_TIMER_STATS_ENABLE
+
+# app_timer build options
+OPTS := APP_TIMER_RUNNING_COUNT_UINT64
+OPTS += APP_TIMER_STATS_ENABLE
+OPTS += APP_TIMER_FREERUNNING_COUNTER
+OPTS += APP_TIMER_RECONFIG_WITHOUT_STOPPING
+
+FLAGS := -std=c99 -Wall $(addprefix -D,$(OPTS))
 CFLAGS := $(FLAGS) $(INCLUDES)
 
 EXAMPLE_PROG := $(OUTPUT_DIR)/example_main
