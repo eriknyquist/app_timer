@@ -28,11 +28,11 @@
 #endif // VERBOSE
 
 
-#define TOTAL_TEST_TIME_SECONDS (1 * 60u)   ///< Total runtime for all timers, seconds
-#define TIME_LOG_INTERVAL_SECS  (300u)       ///< How often to log runtime remaining, seconds
+#define TOTAL_TEST_TIME_SECONDS (10 * 60u)   ///< Total runtime for all timers, seconds
+#define TIME_LOG_INTERVAL_SECS  (60u)        ///< How often to log runtime remaining, seconds
 
-#define NUM_SINGLE_TIMERS (8u)             ///< Number of single-shot timers to create (re-started in timer callback)
-#define NUM_REPEAT_TIMERS (8u)             ///< Number of repeating timers to create
+#define NUM_SINGLE_TIMERS (128u)             ///< Number of single-shot timers to create (re-started in timer callback)
+#define NUM_REPEAT_TIMERS (128u)             ///< Number of repeating timers to create
 #define NUM_TEST_TIMERS \
     (NUM_SINGLE_TIMERS + NUM_REPEAT_TIMERS)  ///< Total number of timers
 
@@ -52,11 +52,13 @@ typedef struct
 {
     app_timer_t timer;       ///< Timer instance
     uint32_t ms;             ///< Timer period in milliseconds
+    uint64_t first_us;       ///< First timer expiration timestamp
     uint64_t last_us;        ///< Last timer expiration timestamp
     int64_t sum_diff_us;     ///< Sum of all differences between timer period and measured period
     int64_t lowest_diff_us;  ///< Lowest deviation seen (from timer period)
     int64_t highest_diff_us; ///< Highest deviation seen (from timer period)
     uint64_t expirations;    ///< Total number of times this timer has expired
+    bool first;              ///< Set to true before the first expiration
 } test_timer_t;
 
 
@@ -83,6 +85,11 @@ typedef struct
     uint64_t total_expected_expirations;     ///< Total number of expected expirations across all timers
     uint64_t total_actual_expirations;       ///< Total number of actual expirations across all timers
     uint64_t highest_expiration_diff;        ///< Absolute highest deviation from expected expiration count across all timers
+
+    uint32_t longest_timer_expirations;          ///< Number of timers t he longerst timer expired
+    uint32_t longest_timer_expected_expirations; ///< Number of timers t he longerst timer expired
+    uint32_t longest_timer_period_ms;            ///< Longest timer period in milliseconds
+    uint32_t longest_timer_error_us;             ///< Longest timer total accumulated error rate, in microseconds
 } test_results_summary_t;
 
 
@@ -168,6 +175,13 @@ static void _process_timer_expiration(test_timer_t *t)
     if (abs_diff < t->lowest_diff_us)
     {
         t->lowest_diff_us = abs_diff;
+    }
+
+    if (t->first)
+    {
+        // If first expiration, save first_us timestamp
+        t->first = false;
+        t->first_us = now_us;
     }
 }
 
@@ -328,6 +342,20 @@ static void _dump_test_results(test_results_summary_t *results)
 
     results->average_avg_percent = sum_percent / ((double) results->total_actual_expirations);
     results->average_avg_ms = sum_ms / ((double) results->total_actual_expirations);
+
+    // Grab the last timer in the table, which should have the longest period
+    test_timer_t *longest = &_test_timers[NUM_TEST_TIMERS - 1u];
+
+    // Calculate total accumulated timing error for this timer, based on first
+    // and last expiration timestamps
+    uint64_t period_us = longest->ms * 1000u;
+    uint64_t total_time_us = longest->last_us - longest->first_us;
+    uint32_t error_us = (uint32_t) (total_time_us % period_us);
+
+    results->longest_timer_expirations = longest->expirations;
+    results->longest_timer_expected_expirations = (total_time_ms - 1UL) / longest->ms;
+    results->longest_timer_period_ms = longest->ms;
+    results->longest_timer_error_us = error_us;
 }
 
 
@@ -355,6 +383,7 @@ int main(int argc, char *argv[])
         _test_timers[i].highest_diff_us = 0LL;
         _test_timers[i].lowest_diff_us = 0LL;
         _test_timers[i].expirations = 0UL;
+        _test_timers[i].first = true;
 
         err = app_timer_create(&_test_timers[i].timer, &_single_timer_callback, APP_TIMER_TYPE_SINGLE_SHOT);
         if (APP_TIMER_OK != err)
@@ -393,6 +422,7 @@ int main(int argc, char *argv[])
         _test_timers[i].highest_diff_us = 0LL;
         _test_timers[i].lowest_diff_us = 0LL;
         _test_timers[i].expirations = 0UL;
+        _test_timers[i].first = true;
 
         /* Half of the repeating timers will have a callback that does not restart itself,
          * and the other half will have a callback that does restart itself. Restarting a repeating
@@ -535,4 +565,10 @@ int main(int argc, char *argv[])
     printf("- Average across all timers                : %.2f\n", results.average_avg_ms);
     printf("- Absolute lowest seen across all timers   : %.2f\n", results.lowest_ms);
     printf("- Absolute highest seen across all timers  : %.2f\n\n", results.highest_ms);
+
+    printf("Accumulated error of longest timer:\n");
+    printf("- Longest timer period in milliseconds     : %u\n", results.longest_timer_period_ms);
+    printf("- Longest timer expected expirations       : %u\n", results.longest_timer_expected_expirations);
+    printf("- Longest timer expirations                : %u\n", results.longest_timer_expirations);
+    printf("- Longest timer error in microseconds      : %u\n\n", results.longest_timer_error_us);
 }
