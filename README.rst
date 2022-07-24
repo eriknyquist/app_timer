@@ -73,6 +73,21 @@ Build options
 There are several preprocessor symbols you can define to change various things at compile time.
 The following sections provide some details about those options.
 
+Optimize for freerunning counter
+================================
+
+By default, ``app_timer`` assumes that the counter is *not* free-running, and that the
+counter will stop counting and/or reset when the target count is reached. However,
+if this is not the case, and the counter you are using will continue to count normally
+once the target count is reached, then you can enable the following option to reduce
+overall timing jitter:
+
++-----------------------------------+-------------------------------------------------+
+| **Symbol name**                   | **What you get if you define this symbol**      |
++===================================+=================================================+
+| ``APP_TIMER_FREERUNNING_COUNTER`` | Optimization for freerunning counter is enabled |
++-----------------------------------+-------------------------------------------------+
+
 Enable app_timer_stats function
 ===============================
 
