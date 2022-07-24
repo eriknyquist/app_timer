@@ -150,11 +150,14 @@ static inline app_timer_running_count_t _ticks_until_expiry(app_timer_running_co
  * list is maintained (the next timer to expire must always be the head of the list).
  *
  * @note The #start_counts and #total_counts fields of the timer must be set before calling
- *       this function
+ *       this function. #start_counts should be set to the timestamp in counts when the timer
+ *       was added via #app_timer_start, and #total_counts should be set to the timer period
+ *       in counts.
  *
  * @param timer Pointer to timer instance to insert
+ * @param now   Current timestamp in timer counts
  */
-static void _insert_active_timer(app_timer_t *timer)
+static void _insert_active_timer(app_timer_t *timer, app_timer_running_count_t now)
 {
     // Set timer state to active
     timer->flags &= ~FLAGS_STATE_MASK;
@@ -176,9 +179,6 @@ static void _insert_active_timer(app_timer_t *timer)
         _active_timers.tail = timer;
         return;
     }
-
-    // timer->start_counts is assumed to be set to the current timestamp
-    app_timer_running_count_t now = timer->start_counts;
 
     app_timer_t *curr = _active_timers.head;
 
@@ -313,8 +313,15 @@ void app_timer_target_count_reached(void)
     app_timer_int_status_t int_status = 0u;
     _hw_model->set_interrupts_enabled(false, &int_status);
 
+    // The tick on which the head active timer should have expired
+    app_timer_running_count_t expiry_count = _running_timer_count + _last_timer_period;
+
+    // Update _running_timer_count with ticks elapsed since last update
+#ifdef APP_TIMER_FREERUNNING_COUNTER
+    _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
+#else
     _running_timer_count += (app_timer_running_count_t) _last_timer_period;
-    app_timer_running_count_t now = _running_timer_count;
+#endif // APP_TIMER_FREERUNNING_COUNTER
 
     // Stop the timer counter, re-start it to time how long it takes to handle all expired timers
 #ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
@@ -327,7 +334,7 @@ void app_timer_target_count_reached(void)
     _counts_after_last_start = _hw_model->read_timer_counts();
 
     // Remove all expired timers from the active list, and run their handlers
-    while ((NULL != _active_timers.head) && (_ticks_until_expiry(now, _active_timers.head) == 0u))
+    while ((NULL != _active_timers.head) && (_ticks_until_expiry(expiry_count, _active_timers.head) == 0u))
     {
         app_timer_t *curr = _active_timers.head;
 
@@ -367,38 +374,35 @@ void app_timer_target_count_reached(void)
         {
             /* Timer is repeating, and was not-restarted or stopped by the handler,
              * so must be re-inserted with a new start time */
-            curr->start_counts = now;
-            _insert_active_timer(curr);
+            curr->start_counts = expiry_count;
+            _insert_active_timer(curr, _total_timer_counts());
         }
     }
 
-    // Update running timer count with time taken to run expired handlers
-    _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
-    now = _running_timer_count;
-#ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
-    _hw_model->set_timer_running(false);
-#endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
-
     if (NULL == _active_timers.head)
     {
-        // No more active timers, don't re-start the counter
+        // No more active timers, stop the counter
         _running_timer_count = 0u;
-#ifdef APP_TIMER_RECONFIG_WITHOUT_STOPPING
-        /* If we didn't already stop the counter to set a new timer period,
-         * and there are no more active timers, then we should stop the counter now */
         _hw_model->set_timer_running(false);
-#endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
     }
     else
     {
+        // Update running timer count with time taken to run expired handlers
+        _running_timer_count += (_hw_model->read_timer_counts() - _counts_after_last_start);
+
         // Configure timer for the next expiration and re-start
-        app_timer_running_count_t ticks_until_expiry = _ticks_until_expiry(now, _active_timers.head);
+        app_timer_running_count_t ticks_until_expiry = _ticks_until_expiry(_running_timer_count, _active_timers.head);
 
         /* If the head timer should have already expired (it expired while we were handling
          * other expired timers in the loop above), just configure the hardware for 1 tick,
          * and the head timer will be handled in the next call (although it does have the downside
          * that the head timer will expire at least 1 tick late) */
         bool expiry_overflow = (ticks_until_expiry == 0u);
+
+#ifndef APP_TIMER_RECONFIG_WITHOUT_STOPPING
+    _hw_model->set_timer_running(false);
+#endif // APP_TIMER_RECONFIG_WITHOUT_STOPPING
+
         _configure_timer(expiry_overflow ? 1u : ticks_until_expiry);
 #ifdef APP_TIMER_STATS_ENABLE
         _stats.num_expiry_overflows += (uint32_t) expiry_overflow;
@@ -509,7 +513,7 @@ app_timer_error_e app_timer_start(app_timer_t *timer, app_timer_period_t time_fr
     }
 
     // Insert timer into list
-    _insert_active_timer(timer);
+    _insert_active_timer(timer, timer->start_counts);
 
     /* If this is the new head of the list, we need to re-configure the hardware timer/counter */
     if ((timer == _active_timers.head) && !_inside_target_count_reached)
